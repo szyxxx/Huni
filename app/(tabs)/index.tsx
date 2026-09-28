@@ -85,7 +85,9 @@ export default function HomeScreen() {
               <Image source={{ uri: a.image }} style={styles.areaImage} contentFit="cover" />
               <View style={styles.areaOverlay}>
                 <Text style={[theme.type.bodyStrong, { color: '#fff' }]}>{a.name}</Text>
-                <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.85)' }]}>{a.count} properti</Text>
+                <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.85)' }]}>
+                  {a.count} properti · {a.vibe}
+                </Text>
               </View>
             </Pressable>
           ))}

@@ -69,6 +69,11 @@ export function PropertyCard({ property, onPress }: Props) {
             {specs.join(' · ')}
           </Text>
         ) : null}
+        {property.nearby?.[0] ? (
+          <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 6 }]} numberOfLines={1}>
+            {property.nearby[0].minutes} menit dari {property.nearby[0].label.toLowerCase()}
+          </Text>
+        ) : null}
         {property.fitReason ? (
           <View style={[styles.fitPill, { backgroundColor: theme.colors.brandSoft, marginTop: 8 }]}>
             <Text style={[theme.type.micro, { color: theme.colors.brandInk }]} numberOfLines={1}>

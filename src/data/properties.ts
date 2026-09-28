@@ -27,6 +27,8 @@ export type Property = {
   facilities: string[];
   description: string;
   lastConfirmed: string;
+  previousPrice?: number;
+  nearby?: { label: string; minutes: number }[];
 };
 
 const img = (seed: string) => `https://images.unsplash.com/${seed}?auto=format&fit=crop&w=1200&q=80`;
@@ -56,6 +58,11 @@ export const properties: Property[] = [
     facilities: ['Carport', 'Taman', 'Keamanan 24 jam'],
     description: 'Hunian nyaman dengan sirkulasi udara baik, dekat kampus dan pusat kuliner Dago.',
     lastConfirmed: '2026-09-24',
+    previousPrice: 2_600_000_000,
+    nearby: [
+      { label: 'Kantor tersimpan', minutes: 18 },
+      { label: 'Sekolah tersimpan', minutes: 9 },
+    ],
   },
   {
     id: 'p2',
@@ -79,6 +86,7 @@ export const properties: Property[] = [
     facilities: ['Gym', 'Kolam renang', 'Laundry'],
     description: 'Unit siap huni dengan pemandangan kota, akses mudah ke MRT Sudirman.',
     lastConfirmed: '2026-09-26',
+    nearby: [{ label: 'Kantor tersimpan', minutes: 12 }],
   },
   {
     id: 'p3',
@@ -173,14 +181,16 @@ export const properties: Property[] = [
     facilities: ['Clubhouse', 'Taman bermain', 'Keamanan 24 jam'],
     description: 'Cluster baru dengan konsep hijau, dekat gerbang tol dan sekolah internasional.',
     lastConfirmed: '2026-09-27',
+    previousPrice: 1_950_000_000,
+    nearby: [{ label: 'Sekolah tersimpan', minutes: 6 }],
   },
 ];
 
 export const getPropertyById = (id: string) => properties.find((p) => p.id === id);
 
 export const popularAreas = [
-  { id: 'a1', name: 'Bandung Utara', count: 1240, image: img('photo-1596395464291-31c8d0d59f5c') },
-  { id: 'a2', name: 'BSD City', count: 860, image: img('photo-1613977257363-707ba9348227') },
-  { id: 'a3', name: 'Sudirman', count: 540, image: img('photo-1477959858617-67f85cf4f1df') },
-  { id: 'a4', name: 'Ubud', count: 310, image: img('photo-1518998053901-5348d3961a04') },
+  { id: 'a1', name: 'Bandung Utara', count: 1240, image: img('photo-1596395464291-31c8d0d59f5c'), vibe: 'Tenang & asri' },
+  { id: 'a2', name: 'BSD City', count: 860, image: img('photo-1613977257363-707ba9348227'), vibe: 'Ramah keluarga' },
+  { id: 'a3', name: 'Sudirman', count: 540, image: img('photo-1477959858617-67f85cf4f1df'), vibe: 'Hidup & dinamis' },
+  { id: 'a4', name: 'Ubud', count: 310, image: img('photo-1518998053901-5348d3961a04'), vibe: 'Tenang & kreatif' },
 ];

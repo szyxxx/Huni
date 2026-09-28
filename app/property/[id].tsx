@@ -21,6 +21,11 @@ export default function PropertyDetailScreen() {
   const [imageIndex, setImageIndex] = useState(0);
   const isSaved = useAppStore((s) => s.isSaved(id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
+  const isWatchingPrice = useAppStore((s) => s.isWatchingPrice(id));
+  const togglePriceWatch = useAppStore((s) => s.togglePriceWatch);
+  const shortlists = useAppStore((s) => s.shortlists);
+  const addToShortlist = useAppStore((s) => s.addToShortlist);
+  const [shortlistPickerOpen, setShortlistPickerOpen] = useState(false);
 
   const property = getPropertyById(id);
   if (!property) {
@@ -49,7 +54,9 @@ export default function PropertyDetailScreen() {
             onMomentumScrollEnd={(e) => setImageIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
           >
             {property.images.map((uri, i) => (
-              <Image key={i} source={{ uri }} style={{ width, height: 320 }} contentFit="cover" transition={200} />
+              <Pressable key={i} onPress={() => router.push(`/gallery/${property.id}?index=${i}`)}>
+                <Image source={{ uri }} style={{ width, height: 320 }} contentFit="cover" transition={200} />
+              </Pressable>
             ))}
           </ScrollView>
 
@@ -98,9 +105,75 @@ export default function PropertyDetailScreen() {
 
         <View style={styles.content}>
           <VerificationBadge tier={property.verification} />
-          <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 10 }]}>
-            {formatPriceLine(property.price, property.priceUnit)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 }}>
+            <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>
+              {formatPriceLine(property.price, property.priceUnit)}
+            </Text>
+            {property.previousPrice && property.previousPrice > property.price ? (
+              <View style={[styles.dropBadge, { backgroundColor: theme.colors.success }]}>
+                <Text style={[theme.type.micro, { color: '#fff' }]}>
+                  TURUN DARI {formatIDR(property.previousPrice)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                togglePriceWatch(property.id);
+              }}
+              style={[styles.pillBtn, { borderColor: isWatchingPrice ? theme.colors.brand : theme.colors.border, backgroundColor: isWatchingPrice ? theme.colors.brandSoft : theme.colors.surface }]}
+            >
+              <Text style={[theme.type.captionStrong, { color: isWatchingPrice ? theme.colors.brandInk : theme.colors.inkSecondary }]}>
+                {isWatchingPrice ? '● Memantau harga' : 'Pantau perubahan harga'}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShortlistPickerOpen((v) => !v)}
+              style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+            >
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>+ Shortlist</Text>
+            </Pressable>
+          </View>
+
+          {shortlistPickerOpen ? (
+            <View style={[styles.shortlistPicker, { borderColor: theme.colors.border }]}>
+              {shortlists.length === 0 ? (
+                <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
+                  Belum ada shortlist. Buat dari tab Tersimpan.
+                </Text>
+              ) : (
+                shortlists.map((sl) => (
+                  <Pressable
+                    key={sl.id}
+                    onPress={() => {
+                      addToShortlist(sl.id, property.id);
+                      setShortlistPickerOpen(false);
+                    }}
+                    style={styles.shortlistRow}
+                  >
+                    <Text style={[theme.type.body, { color: theme.colors.inkPrimary }]}>{sl.name}</Text>
+                    <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
+                      {sl.propertyIds.includes(property.id) ? 'Ditambahkan ✓' : `${sl.propertyIds.length} properti`}
+                    </Text>
+                  </Pressable>
+                ))
+              )}
+            </View>
+          ) : null}
+
+          {property.nearby?.length ? (
+            <View style={{ marginTop: 12, gap: 4 }}>
+              {property.nearby.map((n) => (
+                <Text key={n.label} style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
+                  🚗 {n.minutes} menit dari {n.label.toLowerCase()}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+
           {property.estimatedInstallment ? (
             <Pressable onPress={() => router.push(`/kpr?propertyId=${property.id}`)}>
               <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 2, textDecorationLine: 'underline' }]}>
@@ -222,6 +295,10 @@ function Spec({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  dropBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  pillBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  shortlistPicker: { marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 4 },
+  shortlistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   topBar: {
     position: 'absolute',
     left: 16,

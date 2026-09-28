@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import type { PropertyType } from '../data/properties';
+import { properties, type PropertyType } from '../data/properties';
+
+function inviteCodeFor(seed: string) {
+  return `${seed}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export type SearchIntent = 'buy' | 'rent' | 'new-projects';
 
@@ -46,6 +50,21 @@ export type KprScenario = {
   createdAt: string;
 };
 
+export type Shortlist = {
+  id: string;
+  name: string;
+  propertyIds: string[];
+  inviteCode: string;
+  createdAt: string;
+};
+
+export type PriceAlert = {
+  propertyId: string;
+  seenAt: string;
+  fromPrice: number;
+  toPrice: number;
+};
+
 export type NotificationPrefs = {
   savedSearchMatch: boolean;
   priceDrops: boolean;
@@ -87,6 +106,17 @@ type AppState = {
 
   notificationPrefs: NotificationPrefs;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
+
+  shortlists: Shortlist[];
+  createShortlist: (name: string) => Shortlist;
+  addToShortlist: (shortlistId: string, propertyId: string) => void;
+  removeFromShortlist: (shortlistId: string, propertyId: string) => void;
+  deleteShortlist: (id: string) => void;
+
+  watchedPriceIds: Set<string>;
+  togglePriceWatch: (id: string) => void;
+  isWatchingPrice: (id: string) => boolean;
+  priceAlerts: PriceAlert[];
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -165,4 +195,50 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setNotificationPref: (key, value) =>
     set((state) => ({ notificationPrefs: { ...state.notificationPrefs, [key]: value } })),
+
+  shortlists: [],
+  createShortlist: (name) => {
+    const shortlist: Shortlist = {
+      id: `sl_${Date.now()}`,
+      name,
+      propertyIds: [],
+      inviteCode: inviteCodeFor('huni'),
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ shortlists: [shortlist, ...state.shortlists] }));
+    return shortlist;
+  },
+  addToShortlist: (shortlistId, propertyId) =>
+    set((state) => ({
+      shortlists: state.shortlists.map((sl) =>
+        sl.id === shortlistId && !sl.propertyIds.includes(propertyId)
+          ? { ...sl, propertyIds: [...sl.propertyIds, propertyId] }
+          : sl
+      ),
+    })),
+  removeFromShortlist: (shortlistId, propertyId) =>
+    set((state) => ({
+      shortlists: state.shortlists.map((sl) =>
+        sl.id === shortlistId ? { ...sl, propertyIds: sl.propertyIds.filter((id) => id !== propertyId) } : sl
+      ),
+    })),
+  deleteShortlist: (id) => set((state) => ({ shortlists: state.shortlists.filter((sl) => sl.id !== id) })),
+
+  watchedPriceIds: new Set(),
+  togglePriceWatch: (id) =>
+    set((state) => {
+      const next = new Set(state.watchedPriceIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { watchedPriceIds: next };
+    }),
+  isWatchingPrice: (id) => get().watchedPriceIds.has(id),
+  priceAlerts: properties
+    .filter((p) => p.previousPrice && p.previousPrice > p.price)
+    .map((p) => ({
+      propertyId: p.id,
+      seenAt: p.lastConfirmed,
+      fromPrice: p.previousPrice!,
+      toPrice: p.price,
+    })),
 }));
