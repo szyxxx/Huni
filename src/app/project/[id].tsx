@@ -65,7 +65,14 @@ export default function ProjectDetailScreen() {
           ) : null}
           <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{project.name}</Text>
           <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-            {project.developer} · {project.area}, {project.city}
+            <Text
+              style={{ textDecorationLine: 'underline', color: theme.colors.brandInk }}
+              onPress={() => router.push(`/developer/${encodeURIComponent(project.developer)}`)}
+            >
+              {project.developer}
+            </Text>
+            {' · '}
+            {project.area}, {project.city}
           </Text>
 
           {project.promo ? (
