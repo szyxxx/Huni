@@ -10,6 +10,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { VerificationBadge } from '../../components/VerificationBadge';
 import { PropertyMapView } from '../../components/PropertyMapView';
+import { Skeleton } from '../../components/Skeleton';
 import { fetchPropertyById, fetchProperties } from '../../data/repository';
 import { formatIDR, formatPriceLine } from '../../lib/format';
 import { useAppStore } from '../../store/useAppStore';
@@ -47,11 +48,20 @@ export default function PropertyDetailScreen() {
   }, [property?.id]);
 
   if (!property) {
+    if (isLoading) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.colors.canvas, padding: 20, paddingTop: insets.top + 40 }}>
+          <Skeleton height={320} radius={0} style={{ marginHorizontal: -20 }} />
+          <Skeleton height={28} width="60%" style={{ marginTop: 20 }} />
+          <Skeleton height={18} width="40%" style={{ marginTop: 10 }} />
+          <Skeleton height={80} style={{ marginTop: 20 }} />
+          <Skeleton height={120} style={{ marginTop: 20 }} />
+        </View>
+      );
+    }
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
-          {isLoading ? 'Memuat…' : 'Properti tidak ditemukan.'}
-        </Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Properti tidak ditemukan.</Text>
       </View>
     );
   }

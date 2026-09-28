@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
+import { Skeleton } from '../../components/Skeleton';
 import { fetchProjectById } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 import type { UnitType } from '../../data/projects';
@@ -37,11 +38,19 @@ export default function ProjectDetailScreen() {
   });
 
   if (!project) {
+    if (isLoading) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.colors.canvas, padding: 20, paddingTop: insets.top + 40 }}>
+          <Skeleton height={260} radius={0} style={{ marginHorizontal: -20 }} />
+          <Skeleton height={26} width="70%" style={{ marginTop: 20 }} />
+          <Skeleton height={18} width="45%" style={{ marginTop: 10 }} />
+          <Skeleton height={100} style={{ marginTop: 20 }} />
+        </View>
+      );
+    }
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
-          {isLoading ? 'Memuat…' : 'Proyek tidak ditemukan.'}
-        </Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Proyek tidak ditemukan.</Text>
       </View>
     );
   }

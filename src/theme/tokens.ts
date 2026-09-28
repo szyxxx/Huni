@@ -44,11 +44,15 @@ export const darkPalette = {
 
 export type Palette = typeof lightPalette;
 
+/** DESIGN.md §8 "Radius scale" — the single source of truth other code should reach for. */
 export const radius = {
-  sm: 10,
-  md: 16,
-  lg: 22,
-  xl: 28,
+  xs: 8, // small indicators / thumbnails
+  sm: 12, // compact controls
+  md: 16, // fields / chips / buttons
+  lg: 20, // standard cards
+  xl: 24, // media cards / sheets
+  xxl: 28, // large sheets / floating bars
+  hero: 32, // hero cards
   pill: 999,
 };
 
