@@ -29,6 +29,8 @@ export type FilterState = {
   maxInstallment: number | null;
   furnished: boolean | null;
   verifiedOnly: boolean;
+  minArea: number | null;
+  specialOfferOnly: boolean;
 };
 
 export const defaultFilters: FilterState = {
@@ -40,6 +42,8 @@ export const defaultFilters: FilterState = {
   maxInstallment: null,
   furnished: null,
   verifiedOnly: false,
+  minArea: null,
+  specialOfferOnly: false,
 };
 
 export type SavedSearch = {

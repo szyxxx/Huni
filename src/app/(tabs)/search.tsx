@@ -72,7 +72,9 @@ export default function SearchScreen() {
     (filters.bathrooms ? 1 : 0) +
     (filters.maxInstallment ? 1 : 0) +
     (filters.verifiedOnly ? 1 : 0) +
-    (filters.furnished ? 1 : 0);
+    (filters.furnished ? 1 : 0) +
+    (filters.minArea ? 1 : 0) +
+    (filters.specialOfferOnly ? 1 : 0);
 
   const results = useMemo(() => {
     let list = properties.filter(
@@ -105,6 +107,9 @@ export default function SearchScreen() {
     if (filters.maxInstallment)
       list = list.filter((p) => !p.estimatedInstallment || p.estimatedInstallment <= filters.maxInstallment!);
     if (filters.verifiedOnly) list = list.filter((p) => p.verification !== 'unverified');
+    if (filters.furnished) list = list.filter((p) => p.furnished === true);
+    if (filters.minArea) list = list.filter((p) => (p.landArea ?? p.buildingArea ?? 0) >= filters.minArea!);
+    if (filters.specialOfferOnly) list = list.filter((p) => p.promotion !== 'normal');
 
     if (sort === 'Harga terendah') list = [...list].sort((a, b) => a.price - b.price);
     if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);

@@ -93,6 +93,13 @@ export default function FiltersScreen() {
             onDecrease={() => setDraft((d) => ({ ...d, bathrooms: d.bathrooms ? Math.max(0, d.bathrooms - 1) || null : null }))}
             onIncrease={() => setDraft((d) => ({ ...d, bathrooms: (d.bathrooms ?? 0) + 1 }))}
           />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+          <Stepper
+            label="Luas tanah/bangunan minimum"
+            value={draft.minArea ? `${draft.minArea} m²` : 'Semua'}
+            onDecrease={() => setDraft((d) => ({ ...d, minArea: d.minArea ? Math.max(0, d.minArea - 10) || null : null }))}
+            onIncrease={() => setDraft((d) => ({ ...d, minArea: (d.minArea ?? 0) + 10 }))}
+          />
         </View>
 
         <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>Lainnya</Text>
@@ -106,6 +113,11 @@ export default function FiltersScreen() {
             label="Fully furnished"
             selected={draft.furnished === true}
             onPress={() => setDraft((d) => ({ ...d, furnished: d.furnished === true ? null : true }))}
+          />
+          <Chip
+            label="Ada penawaran khusus"
+            selected={draft.specialOfferOnly}
+            onPress={() => setDraft((d) => ({ ...d, specialOfferOnly: !d.specialOfferOnly }))}
           />
         </View>
       </ScrollView>

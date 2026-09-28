@@ -17,6 +17,7 @@ export type Property = {
   bathrooms?: number;
   landArea?: number;
   buildingArea?: number;
+  furnished?: boolean;
   images: string[];
   verification: VerificationTier;
   promotion: PromotionTier;
@@ -76,6 +77,7 @@ export const properties: Property[] = [
     bedrooms: 1,
     bathrooms: 1,
     buildingArea: 28,
+    furnished: true,
     images: [img('photo-1522708323590-d24dbb6b0267'), img('photo-1502672260266-1c1ef2d93688')],
     verification: 'verified_agency',
     promotion: 'sponsored',
@@ -124,6 +126,7 @@ export const properties: Property[] = [
     bedrooms: 1,
     bathrooms: 1,
     buildingArea: 12,
+    furnished: true,
     images: [img('photo-1560448204-e02f11c3d0e2'), img('photo-1540518614846-7eded433c457')],
     verification: 'verified_owner',
     promotion: 'normal',
