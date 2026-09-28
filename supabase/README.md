@@ -16,7 +16,10 @@
    project URL and **anon** key from Project Settings → API. Never put the
    `service_role` key in the app or in chat — it only belongs in Edge
    Function secrets.
-6. Deploy the edge functions:
+6. For Android push (FCM), see the "Push notifications" section in the repo
+   root `README.md` — Axel needs to create a Firebase project and send
+   `google-services.json`.
+7. Deploy the edge functions:
    ```bash
    supabase functions deploy price-drop-alerts
    supabase functions deploy shortlist-invite

@@ -26,6 +26,26 @@ switches Home, Search, and the property/project detail screens to live
 queries automatically — no code change needed. See `supabase/README.md` for
 schema, seed data, edge functions, and what's not wired up yet.
 
+## Push notifications
+
+Data and auth run on Supabase; Android push notifications go through
+**FCM** (Expo push tokens deliver over FCM on Android). To enable it:
+
+1. Create a Firebase project, add an Android app with package name
+   `id.huni.app`, and download `google-services.json`.
+2. Place it at the repo root as `google-services.json` (git-ignored —
+   never commit it). `app.json` already points `android.googleServicesFile`
+   at that path.
+3. Upload the FCM **V1 service account key** to EAS yourself (`eas
+   credentials`) — don't paste it in chat.
+
+Until `google-services.json` exists, Android builds that need push will
+fail at build time; everything else in the app is unaffected.
+`src/lib/pushNotifications.ts` registers a device's Expo push token into
+Supabase's `push_tokens` table (used by the `price-drop-alerts` edge
+function) once a user is signed in and has granted notification
+permission.
+
 ## Design system
 
 `src/theme` implements the light/dark palettes, spacing, type, and material
