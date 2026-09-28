@@ -8,8 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { hasSeenOnboarding } from '../lib/onboarding';
 import { AuthProvider } from '../auth/AuthProvider';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 60_000 } },
+});
 
 function RootStack() {
   const theme = useTheme();
@@ -58,16 +61,18 @@ function RootStack() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <AuthProvider>
-              <RootStack />
-            </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <AuthProvider>
+                <RootStack />
+              </AuthProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
