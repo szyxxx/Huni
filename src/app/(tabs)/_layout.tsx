@@ -1,8 +1,8 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { GlassSurface } from '../../src/components/GlassSurface';
+import { useTheme } from '../../theme/ThemeProvider';
+import { GlassSurface } from '../../components/GlassSurface';
 
 const ICONS: Record<string, string> = {
   index: '⌂',

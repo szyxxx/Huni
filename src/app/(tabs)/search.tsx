@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { Chip } from '../../src/components/Chip';
-import { PropertyCard } from '../../src/components/PropertyCard';
-import { PropertyMapView } from '../../src/components/PropertyMapView';
-import { properties } from '../../src/data/properties';
-import { useAppStore } from '../../src/store/useAppStore';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Chip } from '../../components/Chip';
+import { PropertyCard } from '../../components/PropertyCard';
+import { PropertyMapView } from '../../components/PropertyMapView';
+import { properties } from '../../data/properties';
+import { useAppStore } from '../../store/useAppStore';
 
 const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi'];
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../src/theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const MENU: { label: string; hint: string; route: string }[] = [
   { label: 'Pencarian & properti tersimpan', hint: 'Kelola preferensi dan notifikasi pencarian', route: '/(tabs)/saved' },

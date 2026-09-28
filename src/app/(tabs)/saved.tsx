@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { PropertyCard } from '../../src/components/PropertyCard';
-import { SectionHeader } from '../../src/components/SectionHeader';
-import { getPropertyById, properties } from '../../src/data/properties';
-import { useAppStore } from '../../src/store/useAppStore';
-import { formatIDR } from '../../src/lib/format';
+import { useTheme } from '../../theme/ThemeProvider';
+import { PropertyCard } from '../../components/PropertyCard';
+import { SectionHeader } from '../../components/SectionHeader';
+import { getPropertyById, properties } from '../../data/properties';
+import { useAppStore } from '../../store/useAppStore';
+import { formatIDR } from '../../lib/format';
 
 export default function SavedScreen() {
   const theme = useTheme();

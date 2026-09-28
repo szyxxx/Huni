@@ -3,12 +3,12 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { Chip } from '../../src/components/Chip';
-import { SectionHeader } from '../../src/components/SectionHeader';
-import { PropertyCard } from '../../src/components/PropertyCard';
-import { properties, popularAreas } from '../../src/data/properties';
-import { useAppStore, SearchIntent } from '../../src/store/useAppStore';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Chip } from '../../components/Chip';
+import { SectionHeader } from '../../components/SectionHeader';
+import { PropertyCard } from '../../components/PropertyCard';
+import { properties, popularAreas } from '../../data/properties';
+import { useAppStore, SearchIntent } from '../../store/useAppStore';
 
 const INTENTS: { key: SearchIntent; label: string }[] = [
   { key: 'buy', label: 'Beli' },

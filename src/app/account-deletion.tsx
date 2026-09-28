@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../src/theme/ThemeProvider';
+import { useTheme } from '../theme/ThemeProvider';
 
 const ACCOUNT_DELETION_WEB_URL = 'https://huni.id/hapus-akun';
 

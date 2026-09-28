@@ -3,10 +3,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../src/theme/ThemeProvider';
-import { useAppStore } from '../src/store/useAppStore';
-import { getPropertyById } from '../src/data/properties';
-import { formatPriceLine } from '../src/lib/format';
+import { useTheme } from '../theme/ThemeProvider';
+import { useAppStore } from '../store/useAppStore';
+import { getPropertyById } from '../data/properties';
+import { formatPriceLine } from '../lib/format';
 
 const ROWS: { label: string; get: (p: ReturnType<typeof getPropertyById>) => string }[] = [
   { label: 'Harga', get: (p) => (p ? formatPriceLine(p.price, p.priceUnit) : '-') },

@@ -4,13 +4,13 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { GlassSurface } from '../../src/components/GlassSurface';
-import { VerificationBadge } from '../../src/components/VerificationBadge';
-import { getPropertyById, properties } from '../../src/data/properties';
-import { formatIDR, formatPriceLine } from '../../src/lib/format';
-import { useAppStore } from '../../src/store/useAppStore';
-import { PropertyCard } from '../../src/components/PropertyCard';
+import { useTheme } from '../../theme/ThemeProvider';
+import { GlassSurface } from '../../components/GlassSurface';
+import { VerificationBadge } from '../../components/VerificationBadge';
+import { getPropertyById, properties } from '../../data/properties';
+import { formatIDR, formatPriceLine } from '../../lib/format';
+import { useAppStore } from '../../store/useAppStore';
+import { PropertyCard } from '../../components/PropertyCard';
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

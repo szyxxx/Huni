@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../src/theme/ThemeProvider';
-import { Stepper } from '../src/components/Stepper';
-import { calculateKpr } from '../src/lib/kpr';
-import { formatIDR } from '../src/lib/format';
-import { useAppStore } from '../src/store/useAppStore';
-import { getPropertyById } from '../src/data/properties';
+import { useTheme } from '../theme/ThemeProvider';
+import { Stepper } from '../components/Stepper';
+import { calculateKpr } from '../lib/kpr';
+import { formatIDR } from '../lib/format';
+import { useAppStore } from '../store/useAppStore';
+import { getPropertyById } from '../data/properties';
 
 export default function KprScreen() {
   const theme = useTheme();

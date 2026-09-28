@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 
 const queryClient = new QueryClient();
 

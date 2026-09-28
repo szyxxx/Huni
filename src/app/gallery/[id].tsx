@@ -12,8 +12,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { getPropertyById } from '../../src/data/properties';
+import { useTheme } from '../../theme/ThemeProvider';
+import { getPropertyById } from '../../data/properties';
 
 /** Full-bleed swipeable gallery with pinch-to-zoom per PRD §8.1 "Fullscreen image viewer + pinch zoom". */
 export default function GalleryScreen() {

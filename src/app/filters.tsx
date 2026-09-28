@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../src/theme/ThemeProvider';
-import { Chip } from '../src/components/Chip';
-import { Stepper } from '../src/components/Stepper';
-import { useAppStore, defaultFilters, FilterState } from '../src/store/useAppStore';
-import type { PropertyType } from '../src/data/properties';
-import { formatIDR } from '../src/lib/format';
+import { useTheme } from '../theme/ThemeProvider';
+import { Chip } from '../components/Chip';
+import { Stepper } from '../components/Stepper';
+import { useAppStore, defaultFilters, FilterState } from '../store/useAppStore';
+import type { PropertyType } from '../data/properties';
+import { formatIDR } from '../lib/format';
 
 const TYPE_OPTIONS: { key: PropertyType; label: string }[] = [
   { key: 'house', label: 'Rumah' },

@@ -2,8 +2,8 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../src/theme/ThemeProvider';
-import { useAppStore, NotificationPrefs } from '../src/store/useAppStore';
+import { useTheme } from '../theme/ThemeProvider';
+import { useAppStore, NotificationPrefs } from '../store/useAppStore';
 
 const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
   { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
