@@ -8,7 +8,6 @@ import { Stepper } from '../components/Stepper';
 import { calculateKpr, calculateTakeOver } from '../lib/kpr';
 import { formatIDR } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
-import { getPropertyById } from '../data/properties';
 
 type Mode = 'new' | 'takeover';
 
@@ -16,12 +15,11 @@ export default function KprScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ propertyId?: string }>();
-  const prefill = params.propertyId ? getPropertyById(params.propertyId) : undefined;
+  const params = useLocalSearchParams<{ price?: string }>();
   const addKprScenario = useAppStore((s) => s.addKprScenario);
   const [mode, setMode] = useState<Mode>('new');
 
-  const [priceText, setPriceText] = useState(String(prefill?.price ?? 1_500_000_000));
+  const [priceText, setPriceText] = useState(String(Number(params.price) || 1_500_000_000));
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
   const [tenorYears, setTenorYears] = useState(15);
   const [ratePercent, setRatePercent] = useState(7.5);
@@ -47,7 +45,7 @@ export default function KprScreen() {
   const save = () => {
     if (mode === 'new') {
       addKprScenario({
-        label: prefill ? prefill.title : `Simulasi ${formatIDR(price)}`,
+        label: `Simulasi ${formatIDR(price)}`,
         price,
         downPaymentPercent,
         tenorYears,

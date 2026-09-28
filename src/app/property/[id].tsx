@@ -187,7 +187,7 @@ export default function PropertyDetailScreen() {
           ) : null}
 
           {property.estimatedInstallment ? (
-            <Pressable onPress={() => router.push(`/kpr?propertyId=${property.id}`)}>
+            <Pressable onPress={() => router.push(`/kpr?price=${property.price}`)}>
               <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 2, textDecorationLine: 'underline' }]}>
                 Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan · simulasikan
               </Text>
