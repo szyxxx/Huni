@@ -12,8 +12,9 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getPropertyById } from '../../data/properties';
+import { fetchPropertyById } from '../../data/repository';
 
 /** Full-bleed swipeable gallery with pinch-to-zoom per PRD §8.1 "Fullscreen image viewer + pinch zoom". */
 export default function GalleryScreen() {
@@ -22,7 +23,11 @@ export default function GalleryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const property = getPropertyById(id);
+  const { data: property } = useQuery({
+    queryKey: ['property', id],
+    queryFn: () => fetchPropertyById(id),
+    enabled: Boolean(id),
+  });
   const [page, setPage] = useState(Number(index ?? 0));
   const scrollRef = useRef<ScrollView>(null);
 

@@ -2,9 +2,10 @@ import React from 'react';
 import { Alert, FlatList, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
-import { properties } from '../../data/properties';
+import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 
 /**
@@ -22,6 +23,7 @@ export default function ShortlistScreen() {
   const shortlist = useAppStore((s) => s.shortlists.find((sl) => sl.id === id));
   const removeFromShortlist = useAppStore((s) => s.removeFromShortlist);
   const deleteShortlist = useAppStore((s) => s.deleteShortlist);
+  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
 
   if (!shortlist) {
     return (

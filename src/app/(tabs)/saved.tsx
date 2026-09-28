@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
 import { SectionHeader } from '../../components/SectionHeader';
-import { getPropertyById, properties } from '../../data/properties';
+import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 import { formatIDR } from '../../lib/format';
 
@@ -22,7 +23,9 @@ export default function SavedScreen() {
   const createShortlist = useAppStore((s) => s.createShortlist);
   const watchedPriceIds = useAppStore((s) => s.watchedPriceIds);
   const priceAlerts = useAppStore((s) => s.priceAlerts);
+  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const saved = properties.filter((p) => savedIds.has(p.id));
+  const getPropertyById = (id: string) => properties.find((p) => p.id === id);
   const [newShortlistName, setNewShortlistName] = useState('');
 
   const watchedAlerts = priceAlerts.filter((a) => watchedPriceIds.has(a.propertyId));
