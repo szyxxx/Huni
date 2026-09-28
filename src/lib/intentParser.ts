@@ -1,4 +1,4 @@
-import type { PropertyType } from '../data/properties';
+import type { Property, PropertyType } from '../data/properties';
 import type { SearchIntent } from '../store/useAppStore';
 
 export type ParsedChip = {
@@ -79,4 +79,35 @@ export function parseIntentQuery(raw: string): ParsedIntent {
   }
 
   return result;
+}
+
+export type EntitySuggestion = { label: string; kind: 'area' | 'city' };
+
+/**
+ * Local area/city suggestions for the search box (part of PRD's "entity
+ * suggestions"), built from the actual catalogue rather than a geocoding
+ * API this app has no key for. Limited to area/city because those are the
+ * only entity types the plain-text search filter (title/area/city
+ * substring match) actually matches — suggesting a project or developer
+ * name here would just produce a dead-end zero-result search.
+ */
+export function getEntitySuggestions(query: string, properties: Property[]): EntitySuggestion[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const seen = new Set<string>();
+  const suggestions: EntitySuggestion[] = [];
+  const add = (label: string, kind: EntitySuggestion['kind']) => {
+    const key = `${kind}:${label.toLowerCase()}`;
+    if (seen.has(key) || !label.toLowerCase().includes(q)) return;
+    seen.add(key);
+    suggestions.push({ label, kind });
+  };
+
+  for (const p of properties) {
+    add(p.area, 'area');
+    add(p.city, 'city');
+  }
+
+  return suggestions.slice(0, 6);
 }

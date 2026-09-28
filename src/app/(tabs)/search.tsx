@@ -9,7 +9,7 @@ import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
 import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
-import { parseIntentQuery } from '../../lib/intentParser';
+import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
 import { getFitReasons } from '../../lib/recommendations';
 
 const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi', 'Luas terbesar'];
@@ -51,6 +51,10 @@ export default function SearchScreen() {
 
   const parsed = useMemo(() => parseIntentQuery(query), [query]);
   const activeChips = parsed.chips.filter((c) => !removedChipKeys.has(c.key));
+  const suggestions = useMemo(
+    () => (searchFocused ? getEntitySuggestions(query, properties) : []),
+    [searchFocused, query, properties]
+  );
 
   useEffect(() => {
     setRemovedChipKeys(new Set());
@@ -156,6 +160,26 @@ export default function SearchScreen() {
           <Text style={{ color: theme.colors.inkPrimary, fontSize: 16 }}>{view === 'list' ? '⊞' : '☰'}</Text>
         </Pressable>
       </View>
+
+      {searchFocused && query.trim() && suggestions.length > 0 ? (
+        <View style={[styles.historyBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          {suggestions.map((s) => (
+            <Pressable
+              key={`${s.kind}:${s.label}`}
+              onPress={() => setQuery(s.label)}
+              style={styles.historyRow}
+            >
+              <Text style={{ color: theme.colors.inkTertiary, fontSize: 14 }}>📍</Text>
+              <Text style={[theme.type.body, { color: theme.colors.inkPrimary, marginLeft: 10 }]} numberOfLines={1}>
+                {s.label}
+              </Text>
+              <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginLeft: 8 }]}>
+                {s.kind === 'area' ? 'Area' : 'Kota'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {searchFocused && !query.trim() && searchHistory.length > 0 ? (
         <View style={[styles.historyBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
