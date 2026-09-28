@@ -9,6 +9,18 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { fetchProjectById } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
+import type { UnitType } from '../../data/projects';
+
+const NO_CLUSTER = '__none__';
+
+function groupByCluster(units: UnitType[]): [string, UnitType[]][] {
+  const groups = new Map<string, UnitType[]>();
+  for (const u of units) {
+    const key = u.cluster ?? NO_CLUSTER;
+    groups.set(key, [...(groups.get(key) ?? []), u]);
+  }
+  return Array.from(groups.entries());
+}
 
 /** Developer/project detail (PRD §7.5, §8.1): cluster/unit types, progress, promo, POI. */
 export default function ProjectDetailScreen() {
@@ -32,6 +44,8 @@ export default function ProjectDetailScreen() {
       </View>
     );
   }
+
+  const unitClusters = project ? groupByCluster(project.units) : [];
 
   const requestBrochure = () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -92,21 +106,30 @@ export default function ProjectDetailScreen() {
           </Text>
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Tipe unit</Text>
-          <View style={{ marginTop: 10, gap: 10 }}>
-            {project.units.map((u) => (
-              <View key={u.id} style={[styles.unitRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{u.name}</Text>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                    {u.bedrooms} KT · {u.bathrooms} KM · {u.buildingArea} m² · {u.available} unit tersedia
-                  </Text>
-                </View>
-                <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
-                  mulai {formatIDR(u.priceFrom)}
+          {unitClusters.map(([cluster, units]) => (
+            <View key={cluster} style={{ marginTop: 10 }}>
+              {cluster !== NO_CLUSTER ? (
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginBottom: 8 }]}>
+                  {cluster}
                 </Text>
+              ) : null}
+              <View style={{ gap: 10 }}>
+                {units.map((u) => (
+                  <View key={u.id} style={[styles.unitRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{u.name}</Text>
+                      <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
+                        {u.bedrooms} KT · {u.bathrooms} KM · {u.buildingArea} m² · {u.available} unit tersedia
+                      </Text>
+                    </View>
+                    <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
+                      mulai {formatIDR(u.priceFrom)}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Fasilitas</Text>
           <View style={styles.facilityWrap}>

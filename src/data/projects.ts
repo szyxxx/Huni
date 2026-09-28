@@ -3,6 +3,7 @@ const img = (seed: string) => `https://images.unsplash.com/${seed}?auto=format&f
 export type UnitType = {
   id: string;
   name: string;
+  cluster?: string;
   buildingArea: number;
   bedrooms: number;
   bathrooms: number;
@@ -42,9 +43,9 @@ export const projects: DevelopmentProject[] = [
     facilities: ['Clubhouse', 'Kolam renang', 'Taman bermain', 'Keamanan 24 jam'],
     promo: 'DP 0% untuk 50 unit pertama',
     units: [
-      { id: 'u1', name: 'Tipe Aster', buildingArea: 80, bedrooms: 2, bathrooms: 2, priceFrom: 1_450_000_000, available: 12 },
-      { id: 'u2', name: 'Tipe Camelia', buildingArea: 100, bedrooms: 3, bathrooms: 2, priceFrom: 1_850_000_000, available: 6 },
-      { id: 'u3', name: 'Tipe Dahlia', buildingArea: 130, bedrooms: 4, bathrooms: 3, priceFrom: 2_400_000_000, available: 3 },
+      { id: 'u1', name: 'Tipe Aster', cluster: 'Cluster Anggrek', buildingArea: 80, bedrooms: 2, bathrooms: 2, priceFrom: 1_450_000_000, available: 12 },
+      { id: 'u2', name: 'Tipe Camelia', cluster: 'Cluster Anggrek', buildingArea: 100, bedrooms: 3, bathrooms: 2, priceFrom: 1_850_000_000, available: 6 },
+      { id: 'u3', name: 'Tipe Dahlia', cluster: 'Cluster Melati', buildingArea: 130, bedrooms: 4, bathrooms: 3, priceFrom: 2_400_000_000, available: 3 },
     ],
     nearby: [
       { label: 'Gerbang tol', minutes: 5 },

@@ -101,7 +101,7 @@ type ProjectRow = {
   lat: number | null;
   lng: number | null;
   advertisers: { name: string; verification: string } | null;
-  project_units: { id: string; name: string; building_area: number; bedrooms: number; bathrooms: number; price_from: number; available: number }[];
+  project_units: { id: string; name: string; cluster: string | null; building_area: number; bedrooms: number; bathrooms: number; price_from: number; available: number }[];
   project_nearby_places: { label: string; minutes: number }[];
 };
 
@@ -121,6 +121,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
     units: row.project_units.map((u) => ({
       id: u.id,
       name: u.name,
+      cluster: u.cluster ?? undefined,
       buildingArea: u.building_area,
       bedrooms: u.bedrooms,
       bathrooms: u.bathrooms,
@@ -136,7 +137,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
 const PROJECT_SELECT = `
   id, name, city, area, images, progress_percent, progress_label, facilities, promo, lat, lng,
   advertisers ( name, verification ),
-  project_units ( id, name, building_area, bedrooms, bathrooms, price_from, available ),
+  project_units ( id, name, cluster, building_area, bedrooms, bathrooms, price_from, available ),
   project_nearby_places ( label, minutes )
 `;
 
