@@ -49,6 +49,7 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": "REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY"

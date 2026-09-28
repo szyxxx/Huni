@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# FCM credentials (never commit — provided by Axel per-environment)
+google-services.json
+
 # typescript
 *.tsbuildinfo
 

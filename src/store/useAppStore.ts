@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 import { properties, type PropertyType } from '../data/properties';
+import {
+  deleteShortlistRemote,
+  pullUserData,
+  pushKprScenario,
+  pushPriceWatch,
+  pushSavedProperty,
+  pushSavedSearch,
+  pushShortlist,
+  pushShortlistProperty,
+  removeKprScenarioRemote,
+  removeSavedSearchRemote,
+  type RemoteUserData,
+} from '../data/sync';
 
 function inviteCodeFor(seed: string) {
   return `${seed}-${Math.random().toString(36).slice(2, 8)}`;
@@ -117,6 +130,10 @@ type AppState = {
   togglePriceWatch: (id: string) => void;
   isWatchingPrice: (id: string) => boolean;
   priceAlerts: PriceAlert[];
+
+  syncUserId: string | null;
+  setSyncUserId: (userId: string | null) => void;
+  hydrateFromRemote: (data: RemoteUserData) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -124,13 +141,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIntent: (intent) => set({ intent }),
 
   savedIds: new Set(),
-  toggleSaved: (id) =>
+  toggleSaved: (id) => {
+    const nowSaved = !get().savedIds.has(id);
     set((state) => {
       const next = new Set(state.savedIds);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return { savedIds: next };
-    }),
+    });
+    if (get().syncUserId) pushSavedProperty(get().syncUserId!, id, nowSaved);
+  },
   isSaved: (id) => get().savedIds.has(id),
 
   hiddenIds: new Set(),
@@ -153,26 +173,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   resetFilters: () => set({ filters: defaultFilters }),
 
   savedSearches: [],
-  addSavedSearch: (search) =>
-    set((state) => ({
-      savedSearches: [
-        { ...search, id: `ss_${Date.now()}`, createdAt: new Date().toISOString() },
-        ...state.savedSearches,
-      ],
-    })),
-  removeSavedSearch: (id) =>
-    set((state) => ({ savedSearches: state.savedSearches.filter((s) => s.id !== id) })),
+  addSavedSearch: (search) => {
+    const entry: SavedSearch = { ...search, id: `ss_${Date.now()}`, createdAt: new Date().toISOString() };
+    set((state) => ({ savedSearches: [entry, ...state.savedSearches] }));
+    if (get().syncUserId) pushSavedSearch(get().syncUserId!, entry);
+  },
+  removeSavedSearch: (id) => {
+    set((state) => ({ savedSearches: state.savedSearches.filter((s) => s.id !== id) }));
+    if (get().syncUserId) removeSavedSearchRemote(id);
+  },
 
   kprScenarios: [],
-  addKprScenario: (scenario) =>
-    set((state) => ({
-      kprScenarios: [
-        { ...scenario, id: `kpr_${Date.now()}`, createdAt: new Date().toISOString() },
-        ...state.kprScenarios,
-      ],
-    })),
-  removeKprScenario: (id) =>
-    set((state) => ({ kprScenarios: state.kprScenarios.filter((s) => s.id !== id) })),
+  addKprScenario: (scenario) => {
+    const entry: KprScenario = { ...scenario, id: `kpr_${Date.now()}`, createdAt: new Date().toISOString() };
+    set((state) => ({ kprScenarios: [entry, ...state.kprScenarios] }));
+    if (get().syncUserId) pushKprScenario(get().syncUserId!, entry);
+  },
+  removeKprScenario: (id) => {
+    set((state) => ({ kprScenarios: state.kprScenarios.filter((s) => s.id !== id) }));
+    if (get().syncUserId) removeKprScenarioRemote(id);
+  },
 
   compareIds: [],
   toggleCompare: (id) =>
@@ -206,32 +226,43 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
     set((state) => ({ shortlists: [shortlist, ...state.shortlists] }));
+    if (get().syncUserId) pushShortlist(get().syncUserId!, shortlist);
     return shortlist;
   },
-  addToShortlist: (shortlistId, propertyId) =>
+  addToShortlist: (shortlistId, propertyId) => {
     set((state) => ({
       shortlists: state.shortlists.map((sl) =>
         sl.id === shortlistId && !sl.propertyIds.includes(propertyId)
           ? { ...sl, propertyIds: [...sl.propertyIds, propertyId] }
           : sl
       ),
-    })),
-  removeFromShortlist: (shortlistId, propertyId) =>
+    }));
+    if (get().syncUserId) pushShortlistProperty(shortlistId, propertyId, get().syncUserId!, true);
+  },
+  removeFromShortlist: (shortlistId, propertyId) => {
     set((state) => ({
       shortlists: state.shortlists.map((sl) =>
         sl.id === shortlistId ? { ...sl, propertyIds: sl.propertyIds.filter((id) => id !== propertyId) } : sl
       ),
-    })),
-  deleteShortlist: (id) => set((state) => ({ shortlists: state.shortlists.filter((sl) => sl.id !== id) })),
+    }));
+    if (get().syncUserId) pushShortlistProperty(shortlistId, propertyId, get().syncUserId!, false);
+  },
+  deleteShortlist: (id) => {
+    set((state) => ({ shortlists: state.shortlists.filter((sl) => sl.id !== id) }));
+    if (get().syncUserId) deleteShortlistRemote(id);
+  },
 
   watchedPriceIds: new Set(),
-  togglePriceWatch: (id) =>
+  togglePriceWatch: (id) => {
+    const nowWatching = !get().watchedPriceIds.has(id);
     set((state) => {
       const next = new Set(state.watchedPriceIds);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return { watchedPriceIds: next };
-    }),
+    });
+    if (get().syncUserId) pushPriceWatch(get().syncUserId!, id, nowWatching);
+  },
   isWatchingPrice: (id) => get().watchedPriceIds.has(id),
   priceAlerts: properties
     .filter((p) => p.previousPrice && p.previousPrice > p.price)
@@ -241,4 +272,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       fromPrice: p.previousPrice!,
       toPrice: p.price,
     })),
+
+  syncUserId: null,
+  setSyncUserId: (userId) => set({ syncUserId: userId }),
+  hydrateFromRemote: (data) =>
+    set({
+      savedIds: new Set(data.savedIds),
+      watchedPriceIds: new Set(data.watchedPriceIds),
+      savedSearches: data.savedSearches,
+      kprScenarios: data.kprScenarios,
+      shortlists: data.shortlists,
+    }),
 }));

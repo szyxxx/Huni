@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore, NotificationPrefs } from '../store/useAppStore';
+import { useAuth } from '../auth/AuthProvider';
+import { registerPushToken } from '../lib/pushNotifications';
 
 const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
   { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
@@ -22,6 +24,7 @@ export default function NotificationsSettingsScreen() {
   const prefs = useAppStore((s) => s.notificationPrefs);
   const setPref = useAppStore((s) => s.setNotificationPref);
   const [systemGranted, setSystemGranted] = useState<boolean | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -41,6 +44,7 @@ export default function NotificationsSettingsScreen() {
         const req = await Notifications.requestPermissionsAsync();
         setSystemGranted(req.granted);
       }
+      await registerPushToken(user?.id);
     } catch {
       // permission API unavailable (e.g. simulator) — preference is still saved locally
     }

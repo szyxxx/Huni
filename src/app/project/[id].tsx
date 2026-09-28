@@ -3,10 +3,11 @@ import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWi
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
-import { getProjectById } from '../../data/projects';
+import { fetchProjectById } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 
 /** Developer/project detail (PRD §7.5, §8.1): cluster/unit types, progress, promo, POI. */
@@ -16,12 +17,18 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const project = getProjectById(id);
+  const { data: project, isLoading } = useQuery({
+    queryKey: ['project', id],
+    queryFn: () => fetchProjectById(id),
+    enabled: Boolean(id),
+  });
 
   if (!project) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Proyek tidak ditemukan.</Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+          {isLoading ? 'Memuat…' : 'Proyek tidak ditemukan.'}
+        </Text>
       </View>
     );
   }

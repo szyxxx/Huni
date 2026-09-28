@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { hasSeenOnboarding } from '../lib/onboarding';
+import { AuthProvider } from '../auth/AuthProvider';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ function RootStack() {
         <Stack.Screen name="privacy-policy" options={{ presentation: 'card' }} />
         <Stack.Screen name="notifications-settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="project/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );
@@ -60,7 +62,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <RootStack />
+            <AuthProvider>
+              <RootStack />
+            </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

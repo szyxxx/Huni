@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAuth } from '../../auth/AuthProvider';
 
 const MENU: { label: string; hint: string; route: string }[] = [
   { label: 'Pencarian & properti tersimpan', hint: 'Kelola preferensi dan notifikasi pencarian', route: '/(tabs)/saved' },
@@ -16,6 +17,10 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, configured, signOut } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.phone || user?.email || 'Tamu';
+  const initial = (displayName || 'T').charAt(0).toUpperCase();
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.canvas }}
@@ -23,15 +28,25 @@ export default function ProfileScreen() {
     >
       <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
         <View style={[styles.avatar, { backgroundColor: theme.colors.inkPrimary }]}>
-          <Text style={{ color: theme.colors.surface, fontSize: 20, fontWeight: '600' }}>T</Text>
+          <Text style={{ color: theme.colors.surface, fontSize: 20, fontWeight: '600' }}>{initial}</Text>
         </View>
-        <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 12 }]}>Tamu</Text>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 12 }]}>{displayName}</Text>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 2 }]}>
-          Masuk untuk menyimpan preferensi di semua perangkat
+          {user
+            ? 'Preferensimu tersimpan di semua perangkat'
+            : configured
+              ? 'Masuk untuk menyimpan preferensi di semua perangkat'
+              : 'Menjelajah sebagai tamu — data tersimpan di perangkat ini'}
         </Text>
-        <Pressable style={[styles.loginBtn, { backgroundColor: theme.colors.inkPrimary }]}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Masuk / Daftar</Text>
-        </Pressable>
+        {user ? (
+          <Pressable onPress={signOut} style={[styles.loginBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Keluar</Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={() => router.push('/sign-in')} style={[styles.loginBtn, { backgroundColor: theme.colors.inkPrimary }]}>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Masuk / Daftar</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={{ paddingHorizontal: 20, gap: 2 }}>
