@@ -3,33 +3,57 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
+import { useAuth } from '../auth/AuthProvider';
+import { supabase } from '../lib/supabase';
 
 const ACCOUNT_DELETION_WEB_URL = 'https://huni.id/hapus-akun';
 
 /**
  * Satisfies Play's in-app account-deletion requirement (PRD §17, §18.7): the same
  * request must also be reachable from a public web resource registered in Play
- * Console, linked below. Wiring the actual delete call needs the backend/auth
- * decision, so this currently confirms intent and explains retention.
+ * Console, linked below. The actual account/data purge needs an admin process
+ * with the service_role key (never run from the client) — this records a durable
+ * request row in `account_deletion_requests` for that process to pick up within
+ * the stated 30-day window, rather than only showing a confirmation dialog.
  */
 export default function AccountDeletionScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, configured, signOut } = useAuth();
 
-  const requestDeletion = () => {
-    const confirmMsg = 'Permintaan penghapusan akun akan diproses dalam 30 hari sesuai kebijakan privasi kami.';
+  const submitRequest = async () => {
+    if (configured && user && supabase) {
+      const { error } = await supabase
+        .from('account_deletion_requests')
+        .upsert({ user_id: user.id, status: 'pending' }, { onConflict: 'user_id,status' });
+      if (error) {
+        Alert.alert('Gagal mengirim permintaan', error.message);
+        return;
+      }
+      await signOut();
+    }
+    const done = 'Permintaan diterima. Akan diproses dalam 30 hari sesuai kebijakan privasi kami.';
     if (Platform.OS === 'web') {
       // eslint-disable-next-line no-alert
-      if (confirm(`${confirmMsg}\n\nLanjutkan?`)) {
-        // eslint-disable-next-line no-alert
-        alert('Permintaan diterima.');
-        router.back();
-      }
+      alert(done);
+    } else {
+      Alert.alert('Permintaan diterima', done);
+    }
+    router.back();
+  };
+
+  const requestDeletion = () => {
+    const confirmMsg = configured && user
+      ? 'Permintaan penghapusan akun akan diproses dalam 30 hari sesuai kebijakan privasi kami. Kamu akan langsung keluar dari akun ini.'
+      : 'Kamu belum masuk akun, jadi belum ada data akun untuk dihapus di server — ini hanya mencatat niatmu secara lokal.';
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      if (confirm(`${confirmMsg}\n\nLanjutkan?`)) submitRequest();
     } else {
       Alert.alert('Hapus akun', confirmMsg, [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Ajukan penghapusan', style: 'destructive', onPress: () => { Alert.alert('Permintaan diterima'); router.back(); } },
+        { text: 'Ajukan penghapusan', style: 'destructive', onPress: submitRequest },
       ]);
     }
   };

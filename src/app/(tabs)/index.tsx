@@ -94,7 +94,11 @@ export default function HomeScreen() {
         <SectionHeader title="Area populer" subtitle="Yang paling banyak dicari minggu ini" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {popularAreas.map((a) => (
-            <Pressable key={a.id} style={styles.areaCard} onPress={() => router.push('/(tabs)/search')}>
+            <Pressable
+              key={a.id}
+              style={styles.areaCard}
+              onPress={() => router.push(`/(tabs)/search?q=${encodeURIComponent(a.name)}`)}
+            >
               <Image source={{ uri: a.image }} style={styles.areaImage} contentFit="cover" />
               <View style={styles.areaOverlay}>
                 <Text style={[theme.type.bodyStrong, { color: '#fff' }]}>{a.name}</Text>

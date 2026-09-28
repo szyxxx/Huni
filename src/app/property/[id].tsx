@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, Share, StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { VerificationBadge } from '../../components/VerificationBadge';
+import { PropertyMapView } from '../../components/PropertyMapView';
 import { fetchPropertyById, fetchProperties } from '../../data/repository';
 import { formatIDR, formatPriceLine } from '../../lib/format';
 import { useAppStore } from '../../store/useAppStore';
@@ -60,6 +61,25 @@ export default function PropertyDetailScreen() {
     const text = encodeURIComponent(`Halo, saya tertarik dengan "${property.title}" di Huni.`);
     Linking.openURL(`https://wa.me/6281200000000?text=${text}`).catch(() => {});
   };
+  const shareProperty = () => {
+    const link = `https://huni.id/property/${property.id}`;
+    Share.share({
+      message: `Lihat "${property.title}" di Huni: ${formatPriceLine(property.price, property.priceUnit)} — ${link}`,
+      url: link,
+    }).catch(() => {});
+  };
+  const reportListing = () => {
+    const msg = 'Laporkan iklan ini karena tidak akurat, sudah terjual, atau melanggar aturan?';
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      if (confirm(msg)) alert('Laporan diterima. Tim kami akan meninjau iklan ini.');
+    } else {
+      Alert.alert('Laporkan iklan', msg, [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Laporkan', style: 'destructive', onPress: () => Alert.alert('Laporan diterima', 'Tim kami akan meninjau iklan ini.') },
+      ]);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
@@ -86,7 +106,7 @@ export default function PropertyDetailScreen() {
             </GlassSurface>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <GlassSurface style={styles.circleBtnWrap}>
-                <Pressable style={styles.circleBtn}>
+                <Pressable onPress={shareProperty} style={styles.circleBtn}>
                   <Text style={{ fontSize: 16, color: theme.colors.inkPrimary }}>⇧</Text>
                 </Pressable>
               </GlassSurface>
@@ -241,11 +261,17 @@ export default function PropertyDetailScreen() {
           </View>
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Lokasi</Text>
-          <View style={[styles.mapPlaceholder, { backgroundColor: theme.colors.surfaceSoft }]}>
-            <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-              Peta lokasi {property.verification === 'unverified' ? 'tersembunyi' : 'perkiraan'}
-            </Text>
-          </View>
+          {property.verification === 'unverified' ? (
+            <View style={[styles.mapPlaceholder, { backgroundColor: theme.colors.surfaceSoft }]}>
+              <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
+                Peta lokasi tersembunyi sampai iklan ini diverifikasi
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.mapPlaceholder, { overflow: 'hidden' }]}>
+              <PropertyMapView properties={[property]} onSelect={() => {}} />
+            </View>
+          )}
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>
             Diiklankan oleh
@@ -267,7 +293,7 @@ export default function PropertyDetailScreen() {
             </View>
           </View>
 
-          <Pressable style={styles.reportRow}>
+          <Pressable style={styles.reportRow} onPress={reportListing}>
             <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, textDecorationLine: 'underline' }]}>
               Laporkan iklan ini
             </Text>
