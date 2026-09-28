@@ -3,10 +3,17 @@ import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import Constants, { AppOwnership } from 'expo-constants';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore, NotificationPrefs } from '../store/useAppStore';
 import { useAuth } from '../auth/AuthProvider';
 import { registerPushToken } from '../lib/pushNotifications';
+
+// Remote push was removed from Expo Go for Android in SDK 53 — even
+// permission checks throw there. Skip the native calls entirely in Expo Go;
+// preferences still save locally either way.
+const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+const notificationsUnavailable = Platform.OS === 'web' || (Platform.OS === 'android' && isExpoGo);
 
 const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
   { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
@@ -27,7 +34,7 @@ export default function NotificationsSettingsScreen() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (notificationsUnavailable) return;
     Notifications.getPermissionsAsync()
       .then((res) => setSystemGranted(res.granted))
       .catch(() => setSystemGranted(null));
@@ -37,7 +44,7 @@ export default function NotificationsSettingsScreen() {
 
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
     setPref(key, value);
-    if (!value || Platform.OS === 'web') return;
+    if (!value || notificationsUnavailable) return;
     try {
       const current = await Notifications.getPermissionsAsync();
       if (!current.granted) {
@@ -59,7 +66,13 @@ export default function NotificationsSettingsScreen() {
         <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginLeft: 12 }]}>Notifikasi</Text>
       </View>
 
-      {anyEnabled && systemGranted === false ? (
+      {notificationsUnavailable ? (
+        <View style={[styles.warning, { backgroundColor: theme.colors.brandSoft, marginHorizontal: 20 }]}>
+          <Text style={[theme.type.caption, { color: theme.colors.brandInk }]}>
+            Notifikasi push butuh development build, belum tersedia di Expo Go. Preferensi tetap tersimpan.
+          </Text>
+        </View>
+      ) : anyEnabled && systemGranted === false ? (
         <View style={[styles.warning, { backgroundColor: theme.colors.brandSoft, marginHorizontal: 20 }]}>
           <Text style={[theme.type.caption, { color: theme.colors.brandInk }]}>
             Izin notifikasi sistem belum aktif. Aktifkan salah satu kategori di bawah untuk memintanya, atau
