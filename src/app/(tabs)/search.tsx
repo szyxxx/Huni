@@ -74,7 +74,8 @@ export default function SearchScreen() {
     (filters.verifiedOnly ? 1 : 0) +
     (filters.furnished ? 1 : 0) +
     (filters.minArea ? 1 : 0) +
-    (filters.specialOfferOnly ? 1 : 0);
+    (filters.specialOfferOnly ? 1 : 0) +
+    (filters.videoOnly ? 1 : 0);
 
   const results = useMemo(() => {
     let list = properties.filter(
@@ -110,6 +111,7 @@ export default function SearchScreen() {
     if (filters.furnished) list = list.filter((p) => p.furnished === true);
     if (filters.minArea) list = list.filter((p) => (p.landArea ?? p.buildingArea ?? 0) >= filters.minArea!);
     if (filters.specialOfferOnly) list = list.filter((p) => p.promotion !== 'normal');
+    if (filters.videoOnly) list = list.filter((p) => Boolean(p.videoUrl));
 
     if (sort === 'Harga terendah') list = [...list].sort((a, b) => a.price - b.price);
     if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);

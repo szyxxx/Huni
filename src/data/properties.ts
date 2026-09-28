@@ -18,6 +18,7 @@ export type Property = {
   landArea?: number;
   buildingArea?: number;
   furnished?: boolean;
+  videoUrl?: string;
   images: string[];
   verification: VerificationTier;
   promotion: PromotionTier;
@@ -78,6 +79,7 @@ export const properties: Property[] = [
     bathrooms: 1,
     buildingArea: 28,
     furnished: true,
+    videoUrl: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
     images: [img('photo-1522708323590-d24dbb6b0267'), img('photo-1502672260266-1c1ef2d93688')],
     verification: 'verified_agency',
     promotion: 'sponsored',

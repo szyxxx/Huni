@@ -18,6 +18,8 @@ type PropertyRow = {
   land_area: number | null;
   building_area: number | null;
   images: string[];
+  furnished: boolean | null;
+  video_url: string | null;
   promotion: Property['promotion'];
   facilities: string[];
   description: string;
@@ -44,6 +46,8 @@ function mapPropertyRow(row: PropertyRow): Property {
     bathrooms: row.bathrooms ?? undefined,
     landArea: row.land_area ?? undefined,
     buildingArea: row.building_area ?? undefined,
+    furnished: row.furnished ?? undefined,
+    videoUrl: row.video_url ?? undefined,
     images: row.images,
     verification: row.advertisers?.verification ?? 'unverified',
     promotion: row.promotion,
@@ -59,7 +63,7 @@ function mapPropertyRow(row: PropertyRow): Property {
 
 const PROPERTY_SELECT = `
   id, title, intent, type, price, price_unit, estimated_installment, previous_price,
-  area, city, bedrooms, bathrooms, land_area, building_area, images, promotion,
+  area, city, bedrooms, bathrooms, land_area, building_area, images, furnished, video_url, promotion,
   facilities, description, lat, lng, last_confirmed_at,
   advertisers ( name, is_agency, verification ),
   property_nearby_places ( label, minutes )

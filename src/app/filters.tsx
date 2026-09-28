@@ -119,6 +119,11 @@ export default function FiltersScreen() {
             selected={draft.specialOfferOnly}
             onPress={() => setDraft((d) => ({ ...d, specialOfferOnly: !d.specialOfferOnly }))}
           />
+          <Chip
+            label="Ada video"
+            selected={draft.videoOnly}
+            onPress={() => setDraft((d) => ({ ...d, videoOnly: !d.videoOnly }))}
+          />
         </View>
       </ScrollView>
 

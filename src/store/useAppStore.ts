@@ -31,6 +31,7 @@ export type FilterState = {
   verifiedOnly: boolean;
   minArea: number | null;
   specialOfferOnly: boolean;
+  videoOnly: boolean;
 };
 
 export const defaultFilters: FilterState = {
@@ -44,6 +45,7 @@ export const defaultFilters: FilterState = {
   verifiedOnly: false,
   minArea: null,
   specialOfferOnly: false,
+  videoOnly: false,
 };
 
 export type SavedSearch = {

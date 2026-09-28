@@ -68,6 +68,9 @@ export default function PropertyDetailScreen() {
       url: link,
     }).catch(() => {});
   };
+  const watchVideo = () => {
+    if (property.videoUrl) Linking.openURL(property.videoUrl).catch(() => {});
+  };
   const reportListing = () => {
     const msg = 'Laporkan iklan ini karena tidak akurat, sudah terjual, atau melanggar aturan?';
     if (Platform.OS === 'web') {
@@ -174,6 +177,14 @@ export default function PropertyDetailScreen() {
             >
               <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>+ Shortlist</Text>
             </Pressable>
+            {property.videoUrl ? (
+              <Pressable
+                onPress={watchVideo}
+                style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+              >
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>▶ Video</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {shortlistPickerOpen ? (
