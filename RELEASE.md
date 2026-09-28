@@ -121,6 +121,27 @@ Once a preview/production build runs on a device or emulator, capture
 - Gave the React Query client a `retry: 1` / `staleTime: 60s` default so a
   flaky network request doesn't hang indefinitely on a spinner.
 
+## Release hardening, second pass
+
+- Fixed a real Expo Go crash (`expo-notifications` was statically imported
+  and throws on import on Android in Expo Go since SDK 53) — now dynamically
+  imported and skipped entirely in Expo Go.
+- Fixed the "Fully furnished" filter, which had no backing data field at
+  all and could never actually filter anything.
+- Added: hidden-properties UI, search history + area/city suggestions,
+  pull-to-refresh and a real error state (vs. a fake "no results") on
+  Search/Saved/Home, a working "Rekomendasi" sort, a dedicated developer
+  profile screen, listing video support, project unit clusters/towers,
+  and a branded splash screen (`expo-splash-screen`, was configured with
+  an unused asset before).
+- Replaced every screen's hand-rolled unicode-glyph icons with one
+  consistent set (`@expo/vector-icons`'s Feather), including the tab bar.
+- Verified clean: `expo-doctor` (only a harmless minor version-string
+  mismatch on `@shopify/flash-list`), `tsc --noEmit`, and a production
+  `expo export` (23 static routes, no errors).
+- `versionCode`: not set manually — `eas.json`'s `appVersionSource: "remote"`
+  means EAS auto-increments it on each build; nothing to configure here.
+
 ## Explicitly not done (out of scope for this pass)
 
 - **Crash reporting SDK** (Sentry or similar): not installed — needs an
