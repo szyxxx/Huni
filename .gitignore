@@ -35,6 +35,7 @@ yarn-error.*
 
 # FCM credentials (never commit — provided by Axel per-environment)
 google-services.json
+*firebase-adminsdk*.json
 
 # typescript
 *.tsbuildinfo
