@@ -17,6 +17,12 @@ function RootStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.canvas } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="property/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="kpr" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="filters" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="compare" options={{ presentation: 'card' }} />
+        <Stack.Screen name="account-deletion" options={{ presentation: 'card' }} />
+        <Stack.Screen name="privacy-policy" options={{ presentation: 'card' }} />
+        <Stack.Screen name="notifications-settings" options={{ presentation: 'card' }} />
       </Stack>
     </>
   );

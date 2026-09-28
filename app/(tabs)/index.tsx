@@ -56,7 +56,7 @@ export default function HomeScreen() {
       </Pressable>
 
       <Pressable
-        onPress={() => router.push('/(tabs)/search')}
+        onPress={() => router.push('/kpr')}
         style={[styles.kprBanner, { backgroundColor: theme.colors.inkPrimary }]}
       >
         <View style={{ flex: 1 }}>

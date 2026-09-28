@@ -102,9 +102,11 @@ export default function PropertyDetailScreen() {
             {formatPriceLine(property.price, property.priceUnit)}
           </Text>
           {property.estimatedInstallment ? (
-            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 2 }]}>
-              Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan
-            </Text>
+            <Pressable onPress={() => router.push(`/kpr?propertyId=${property.id}`)}>
+              <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 2, textDecorationLine: 'underline' }]}>
+                Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan · simulasikan
+              </Text>
+            </Pressable>
           ) : null}
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 10 }]}>
             {property.title}

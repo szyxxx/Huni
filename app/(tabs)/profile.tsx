@@ -1,20 +1,20 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeProvider';
 
-const MENU = [
-  { label: 'Preferensi properti', hint: 'Tipe, lokasi, dan anggaran favoritmu' },
-  { label: 'Pencarian tersimpan', hint: 'Kelola notifikasi pencarian' },
-  { label: 'Riwayat dilihat', hint: 'Properti yang baru saja kamu lihat' },
-  { label: 'Simulasi KPR tersimpan', hint: 'Bandingkan skenario cicilan' },
-  { label: 'Pengaturan notifikasi', hint: 'Atur kategori pemberitahuan' },
-  { label: 'Privasi & keamanan', hint: 'Kelola izin lokasi dan data' },
-  { label: 'Hapus akun', hint: 'Ajukan penghapusan akun dan data' },
+const MENU: { label: string; hint: string; route: string }[] = [
+  { label: 'Pencarian & properti tersimpan', hint: 'Kelola preferensi dan notifikasi pencarian', route: '/(tabs)/saved' },
+  { label: 'Simulasi KPR', hint: 'Hitung dan bandingkan skenario cicilan', route: '/kpr' },
+  { label: 'Pengaturan notifikasi', hint: 'Atur kategori pemberitahuan', route: '/notifications-settings' },
+  { label: 'Kebijakan privasi', hint: 'Bagaimana kami mengelola data kamu', route: '/privacy-policy' },
+  { label: 'Hapus akun', hint: 'Ajukan penghapusan akun dan data', route: '/account-deletion' },
 ];
 
 export default function ProfileScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
     <ScrollView
@@ -38,6 +38,7 @@ export default function ProfileScreen() {
         {MENU.map((item) => (
           <Pressable
             key={item.label}
+            onPress={() => router.push(item.route as any)}
             style={[styles.menuItem, { borderBottomColor: theme.colors.border }]}
           >
             <View style={{ flex: 1 }}>
