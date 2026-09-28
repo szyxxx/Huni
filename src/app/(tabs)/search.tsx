@@ -24,6 +24,7 @@ export default function SearchScreen() {
   const addSavedSearch = useAppStore((s) => s.addSavedSearch);
   const compareIds = useAppStore((s) => s.compareIds);
   const toggleCompare = useAppStore((s) => s.toggleCompare);
+  const hiddenIds = useAppStore((s) => s.hiddenIds);
   const [query, setQuery] = useState(params.q ?? '');
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
@@ -56,7 +57,9 @@ export default function SearchScreen() {
     (filters.furnished ? 1 : 0);
 
   const results = useMemo(() => {
-    let list = properties.filter((p) => p.intent === (intent === 'new-projects' ? 'buy' : intent));
+    let list = properties.filter(
+      (p) => p.intent === (intent === 'new-projects' ? 'buy' : intent) && !hiddenIds.has(p.id)
+    );
 
     const hasChip = (key: string) => activeChips.some((c) => c.key === key);
 
@@ -89,7 +92,7 @@ export default function SearchScreen() {
     if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);
     if (sort === 'Terbaru') list = [...list].sort((a, b) => (a.lastConfirmed < b.lastConfirmed ? 1 : -1));
     return list;
-  }, [intent, query, sort, filters, activeChips, parsed]);
+  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds]);
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: true });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { PropertyCard } from '../../components/PropertyCard';
-import { popularAreas } from '../../data/properties';
+import { getPopularAreas } from '../../data/properties';
 import { fetchProperties, fetchProjects } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 import { useAppStore, SearchIntent } from '../../store/useAppStore';
@@ -25,10 +25,13 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
+  const hiddenIds = useAppStore((s) => s.hiddenIds);
 
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
-  const recommended = properties.filter((p) => p.fitReason || p.nearby?.length);
+  const visibleProperties = properties.filter((p) => !hiddenIds.has(p.id));
+  const recommended = visibleProperties.filter((p) => p.fitReason || p.nearby?.length);
+  const popularAreas = useMemo(() => getPopularAreas(visibleProperties), [visibleProperties]);
   const [homeQuery, setHomeQuery] = useState('');
 
   const submitHomeQuery = () => {

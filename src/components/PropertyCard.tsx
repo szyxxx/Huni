@@ -1,8 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { formatPriceLine } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
@@ -18,9 +17,23 @@ export function PropertyCard({ property, onPress }: Props) {
   const theme = useTheme();
   const isSaved = useAppStore((s) => s.isSaved(property.id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
+  const toggleHidden = useAppStore((s) => s.toggleHidden);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const topReason = getFitReasons(property, { filters, kprScenarios })[0];
+
+  const hideProperty = () => {
+    const msg = `Sembunyikan "${property.title}"? Properti ini tidak akan muncul lagi di hasil pencarian. Kamu bisa menampilkannya lagi dari tab Tersimpan.`;
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      if (confirm(msg)) toggleHidden(property.id);
+      return;
+    }
+    Alert.alert('Sembunyikan properti', msg, [
+      { text: 'Batal', style: 'cancel' },
+      { text: 'Sembunyikan', style: 'destructive', onPress: () => toggleHidden(property.id) },
+    ]);
+  };
 
   const specs = [
     property.bedrooms ? `${property.bedrooms} KT` : null,
@@ -31,6 +44,7 @@ export function PropertyCard({ property, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={hideProperty}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: theme.colors.surface, opacity: pressed ? 0.96 : 1 },

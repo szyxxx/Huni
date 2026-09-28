@@ -6,18 +6,12 @@ import { useTheme } from '../theme/ThemeProvider';
 import { Chip } from '../components/Chip';
 import { Stepper } from '../components/Stepper';
 import { useAppStore, defaultFilters, FilterState } from '../store/useAppStore';
-import type { PropertyType } from '../data/properties';
+import { PROPERTY_TYPE_LABELS, type PropertyType } from '../data/properties';
 import { formatIDR } from '../lib/format';
 
-const TYPE_OPTIONS: { key: PropertyType; label: string }[] = [
-  { key: 'house', label: 'Rumah' },
-  { key: 'apartment', label: 'Apartemen' },
-  { key: 'villa', label: 'Villa' },
-  { key: 'kost', label: 'Kost' },
-  { key: 'land', label: 'Tanah' },
-  { key: 'ruko', label: 'Ruko' },
-  { key: 'office', label: 'Kantor' },
-];
+const TYPE_OPTIONS = (Object.entries(PROPERTY_TYPE_LABELS) as [PropertyType, string][]).map(
+  ([key, label]) => ({ key, label })
+);
 
 export default function FiltersScreen() {
   const theme = useTheme();

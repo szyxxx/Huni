@@ -24,8 +24,11 @@ export default function SavedScreen() {
   const watchedPriceIds = useAppStore((s) => s.watchedPriceIds);
   const priceAlerts = useAppStore((s) => s.priceAlerts);
   const recentlyViewed = useAppStore((s) => s.recentlyViewed);
+  const hiddenIds = useAppStore((s) => s.hiddenIds);
+  const toggleHidden = useAppStore((s) => s.toggleHidden);
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const saved = properties.filter((p) => savedIds.has(p.id));
+  const hidden = properties.filter((p) => hiddenIds.has(p.id));
   const getPropertyById = (id: string) => properties.find((p) => p.id === id);
   const recent = recentlyViewed.map(getPropertyById).filter(Boolean) as typeof properties;
   const [newShortlistName, setNewShortlistName] = useState('');
@@ -174,6 +177,29 @@ export default function SavedScreen() {
               </View>
             )}
             </View>
+
+            {hidden.length > 0 ? (
+              <View style={{ marginTop: 20 }}>
+                <SectionHeader title="Disembunyikan" subtitle={`${hidden.length} properti`} />
+                <View style={{ paddingHorizontal: 20, gap: 10 }}>
+                  {hidden.map((p) => (
+                    <View key={p.id} style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
+                          {p.title}
+                        </Text>
+                        <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
+                          {p.area}, {p.city}
+                        </Text>
+                      </View>
+                      <Pressable onPress={() => toggleHidden(p.id)} hitSlop={8}>
+                        <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Tampilkan</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             <View style={{ marginTop: 20 }}>
               <SectionHeader title="Simulasi KPR" subtitle={`${kprScenarios.length} skenario tersimpan`} />

@@ -188,9 +188,41 @@ export const properties: Property[] = [
 
 export const getPropertyById = (id: string) => properties.find((p) => p.id === id);
 
-export const popularAreas = [
-  { id: 'a1', name: 'Bandung Utara', count: 1240, image: img('photo-1596395464291-31c8d0d59f5c'), vibe: 'Tenang & asri' },
-  { id: 'a2', name: 'BSD City', count: 860, image: img('photo-1613977257363-707ba9348227'), vibe: 'Ramah keluarga' },
-  { id: 'a3', name: 'Sudirman', count: 540, image: img('photo-1477959858617-67f85cf4f1df'), vibe: 'Hidup & dinamis' },
-  { id: 'a4', name: 'Ubud', count: 310, image: img('photo-1518998053901-5348d3961a04'), vibe: 'Tenang & kreatif' },
-];
+export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+  house: 'Rumah',
+  apartment: 'Apartemen',
+  villa: 'Villa',
+  kost: 'Kost',
+  land: 'Tanah',
+  ruko: 'Ruko',
+  office: 'Kantor',
+};
+
+/**
+ * Areas ranked by how many live listings they actually have, computed from
+ * `list` rather than hand-typed — the "1240 properti" style fake counts this
+ * replaced never matched the real (tiny mock) catalogue. "Vibe" is the
+ * dominant property type in that area, since that's the only area-level
+ * signal the data actually has.
+ */
+export function getPopularAreas(list: Property[]) {
+  const byArea = new Map<string, Property[]>();
+  for (const p of list) {
+    byArea.set(p.area, [...(byArea.get(p.area) ?? []), p]);
+  }
+  return Array.from(byArea.entries())
+    .map(([name, areaProperties]) => {
+      const typeCounts = new Map<PropertyType, number>();
+      for (const p of areaProperties) typeCounts.set(p.type, (typeCounts.get(p.type) ?? 0) + 1);
+      const dominantType = Array.from(typeCounts.entries()).sort((a, b) => b[1] - a[1])[0][0];
+      return {
+        id: name,
+        name,
+        count: areaProperties.length,
+        image: areaProperties[0].images[0],
+        vibe: `Didominasi ${PROPERTY_TYPE_LABELS[dominantType].toLowerCase()}`,
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+}
