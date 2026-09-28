@@ -25,6 +25,10 @@ export default function SearchScreen() {
   const compareIds = useAppStore((s) => s.compareIds);
   const toggleCompare = useAppStore((s) => s.toggleCompare);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
+  const searchHistory = useAppStore((s) => s.searchHistory);
+  const addSearchHistory = useAppStore((s) => s.addSearchHistory);
+  const clearSearchHistory = useAppStore((s) => s.clearSearchHistory);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [query, setQuery] = useState(params.q ?? '');
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
@@ -32,7 +36,10 @@ export default function SearchScreen() {
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
 
   useEffect(() => {
-    if (params.q) setQuery(params.q);
+    if (params.q) {
+      setQuery(params.q);
+      addSearchHistory(params.q);
+    }
   }, [params.q]);
 
   const parsed = useMemo(() => parseIntentQuery(query), [query]);
@@ -113,6 +120,9 @@ export default function SearchScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            onSubmitEditing={() => addSearchHistory(query)}
             placeholder='Coba: "rumah 3 kamar dekat ITB cicilan 8 juta"'
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
@@ -131,6 +141,29 @@ export default function SearchScreen() {
           <Text style={{ color: theme.colors.inkPrimary, fontSize: 16 }}>{view === 'list' ? '⊞' : '☰'}</Text>
         </Pressable>
       </View>
+
+      {searchFocused && !query.trim() && searchHistory.length > 0 ? (
+        <View style={[styles.historyBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <View style={styles.historyHeader}>
+            <Text style={[theme.type.micro, { color: theme.colors.inkTertiary }]}>PENCARIAN TERAKHIR</Text>
+            <Pressable onPress={clearSearchHistory} hitSlop={8}>
+              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>Hapus</Text>
+            </Pressable>
+          </View>
+          {searchHistory.map((h) => (
+            <Pressable
+              key={h}
+              onPress={() => setQuery(h)}
+              style={styles.historyRow}
+            >
+              <Text style={{ color: theme.colors.inkTertiary, fontSize: 14 }}>🕘</Text>
+              <Text style={[theme.type.body, { color: theme.colors.inkPrimary, marginLeft: 10 }]} numberOfLines={1}>
+                {h}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {activeChips.length > 0 ? (
         <View style={styles.parsedChipRow}>
@@ -235,6 +268,15 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   toggleBtn: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  historyBox: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+  },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   parsedChipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 6 },
   parsedChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   sortRow: { paddingHorizontal: 20, gap: 8 },

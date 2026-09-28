@@ -101,6 +101,10 @@ type AppState = {
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
 
+  searchHistory: string[];
+  addSearchHistory: (query: string) => void;
+  clearSearchHistory: () => void;
+
   filters: FilterState;
   setFilters: (filters: FilterState) => void;
   resetFilters: () => void;
@@ -167,6 +171,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       recentlyViewed: [id, ...state.recentlyViewed.filter((x) => x !== id)].slice(0, 12),
     })),
+
+  searchHistory: [],
+  addSearchHistory: (query) => {
+    const q = query.trim();
+    if (!q) return;
+    set((state) => ({
+      searchHistory: [q, ...state.searchHistory.filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 8),
+    }));
+  },
+  clearSearchHistory: () => set({ searchHistory: [] }),
 
   filters: defaultFilters,
   setFilters: (filters) => set({ filters }),
