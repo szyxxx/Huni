@@ -8,7 +8,7 @@ ship. Nothing here has been submitted — this is prep only.
 
 | # | Item | Where | Status |
 |---|------|-------|--------|
-| 1 | Google Maps API key (Android + iOS) — or a free/key-less map alternative | `app.json` → `REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY` / `_IOS_API_KEY` | Decision pending (Axel asked about free alternatives — map stack untouched until he picks) |
+| 1 | Map provider | `src/components/PropertyMapView.tsx`, `app.json` | **Decided:** MapLibre + OpenFreeMap (`@maplibre/maplibre-react-native`) — free, no API key, no billing. Requires a dev/production build to see (not rendered in Expo Go — falls back to a list there). |
 | 2 | Domain for Privacy Policy & account-deletion web pages | `src/app/account-deletion.tsx`, `src/app/privacy-policy.tsx`, `supabase/functions/shortlist-invite` | **Decided:** `huni.id` — treat as final, already used everywhere in code |
 | 3 | Google Play Console developer account | — | **Deferred** — skipped for now per Axel, not a blocker for continued build work |
 | 4 | App signing — let Google Play App Signing manage the upload key (default with EAS + `eas.json` `production` profile) | `eas build --profile production` | Not built yet |
@@ -20,7 +20,10 @@ actually resolve until Axel points that domain somewhere. That's fine to
 leave as-is while building; it only matters at actual Play submission time,
 which is also deferred.
 
-The real remaining blocker for a production build is #1 (Maps).
+No blockers remain for a production build — everything above is either
+decided or deferred without blocking. Axel still needs a one-time
+`eas build --profile development` to see the real map on his phone
+(MapLibre's native module isn't in Expo Go).
 
 ## Data Safety form (draft answers)
 

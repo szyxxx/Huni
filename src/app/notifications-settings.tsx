@@ -8,6 +8,11 @@ import { isExpoGo } from '../lib/isExpoGo';
 import { registerPushToken } from '../lib/pushNotifications';
 import { useAuth } from '../auth/AuthProvider';
 
+// Remote push was removed from Expo Go for Android in SDK 53 — even permission
+// checks throw there. expo-notifications is loaded dynamically (never
+// statically imported) so this file evaluates fine in Expo Go either way.
+const notificationsUnavailable = Platform.OS === 'web' || (Platform.OS === 'android' && isExpoGo);
+
 const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
   { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
   { key: 'priceDrops', label: 'Penurunan harga', hint: 'Saat properti yang kamu simpan turun harga' },
@@ -27,7 +32,7 @@ export default function NotificationsSettingsScreen() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (Platform.OS === 'web' || isExpoGo) return;
+    if (notificationsUnavailable) return;
     (async () => {
       try {
         const Notifications = await import('expo-notifications');
@@ -43,7 +48,7 @@ export default function NotificationsSettingsScreen() {
 
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
     setPref(key, value);
-    if (!value || Platform.OS === 'web' || isExpoGo) return;
+    if (!value || notificationsUnavailable) return;
     try {
       const Notifications = await import('expo-notifications');
       const current = await Notifications.getPermissionsAsync();
@@ -66,7 +71,13 @@ export default function NotificationsSettingsScreen() {
         <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginLeft: 12 }]}>Notifikasi</Text>
       </View>
 
-      {anyEnabled && systemGranted === false ? (
+      {notificationsUnavailable ? (
+        <View style={[styles.warning, { backgroundColor: theme.colors.brandSoft, marginHorizontal: 20 }]}>
+          <Text style={[theme.type.caption, { color: theme.colors.brandInk }]}>
+            Notifikasi push butuh development build, belum tersedia di Expo Go. Preferensi tetap tersimpan.
+          </Text>
+        </View>
+      ) : anyEnabled && systemGranted === false ? (
         <View style={[styles.warning, { backgroundColor: theme.colors.brandSoft, marginHorizontal: 20 }]}>
           <Text style={[theme.type.caption, { color: theme.colors.brandInk }]}>
             Izin notifikasi sistem belum aktif. Aktifkan salah satu kategori di bawah untuk memintanya, atau

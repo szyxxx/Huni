@@ -7,9 +7,9 @@ import { isExpoGo } from './isExpoGo';
  * Gets an Expo push token (which delivers over FCM on Android, per Axel's
  * "Supabase + FCM" decision) and upserts it into `push_tokens` so the
  * price-drop-alerts edge function can reach this device. No-ops on web,
- * in Expo Go (remote push was removed from Expo Go in SDK 53), when not
- * signed in, or when Supabase isn't configured — call it after requesting
- * notification permission.
+ * in Expo Go (remote push was removed from Expo Go for Android in SDK 53 —
+ * this needs a dev/production build), when not signed in, or when Supabase
+ * isn't configured — call it after requesting notification permission.
  */
 export async function registerPushToken(userId: string | undefined): Promise<void> {
   if (Platform.OS === 'web' || isExpoGo || !userId || !supabase) return;

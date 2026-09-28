@@ -16,7 +16,9 @@ at the repo root.
   scenarios, shortlists, price watches) — mirrored to Supabase for
   signed-in users, local-only for guests
 - `expo-image`, `expo-blur`, `expo-haptics`, `@shopify/flash-list`,
-  `react-native-reanimated` + `react-native-gesture-handler`, `react-native-maps`
+  `react-native-reanimated` + `react-native-gesture-handler`,
+  `@maplibre/maplibre-react-native` (OpenFreeMap tiles, free/no key —
+  needs a dev/production build, not Expo Go)
 
 ## Backend
 

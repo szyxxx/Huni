@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Constants, { AppOwnership } from 'expo-constants';
 import { useTheme } from '../theme/ThemeProvider';
 import { formatIDR } from '../lib/format';
 import type { Property } from '../data/properties';
@@ -9,51 +10,75 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+// OpenFreeMap's hosted "positron" style — free, no API key, no billing.
+// Closest stock match to DESIGN.md's warm-neutral canvas (light, low-saturation basemap).
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+
+const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+
 /**
- * Native map with synchronized price pins (PRD §7.3). Requires a Google Maps API key
- * (app.json android.config.googleMaps.apiKey / ios.config.googleMapsApiKey) to render
- * tiles on a real device build — placeholder pins still render without it in Expo Go/dev.
- * Web has no first-class react-native-maps support, so it renders the same list-style
- * fallback as required by DESIGN.md's "map-only info needs a list alternative" rule.
+ * Native map with synchronized price pins (PRD §7.3), backed by MapLibre +
+ * OpenFreeMap tiles — free and key-less (Axel's call over Google Maps, which
+ * needs an API key + billing). MapLibre's native module isn't bundled in
+ * Expo Go, so this renders the same list fallback there as it already does
+ * on web; a one-time `eas build --profile development` unlocks the real map
+ * on-device. A render-time ErrorBoundary is a second safety net in case the
+ * native module is missing for any other reason, so this never crashes the
+ * Search screen it lives on.
  */
 export function PropertyMapView({ properties, onSelect }: Props) {
   const theme = useTheme();
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || isExpoGo) {
     return <MapFallback properties={properties} onSelect={onSelect} theme={theme} />;
   }
 
-  const MapView = require('react-native-maps').default;
-  const { Marker } = require('react-native-maps');
+  return (
+    <MapErrorBoundary fallback={<MapFallback properties={properties} onSelect={onSelect} theme={theme} />}>
+      <MapLibreView properties={properties} onSelect={onSelect} theme={theme} />
+    </MapErrorBoundary>
+  );
+}
 
-  const region =
-    properties.length > 0
-      ? {
-          latitude: properties[0].lat,
-          longitude: properties[0].lng,
-          latitudeDelta: 0.4,
-          longitudeDelta: 0.4,
-        }
-      : { latitude: -6.2, longitude: 106.8, latitudeDelta: 4, longitudeDelta: 4 };
+function MapLibreView({ properties, onSelect, theme }: Props & { theme: ReturnType<typeof useTheme> }) {
+  // Required inline (not top-level) so web/Expo Go never evaluate this native import.
+  const { Map, Camera, ViewAnnotation } = require('@maplibre/maplibre-react-native');
+
+  const center: [number, number] =
+    properties.length > 0 ? [properties[0].lng, properties[0].lat] : [106.8, -6.2];
 
   return (
-    <MapView style={StyleSheet.absoluteFill} initialRegion={region}>
+    <Map style={StyleSheet.absoluteFill} mapStyle={MAP_STYLE_URL}>
+      <Camera initialViewState={{ center, zoom: properties.length > 0 ? 11 : 4 }} />
       {properties.map((p) => (
-        <Marker key={p.id} coordinate={{ latitude: p.lat, longitude: p.lng }} onPress={() => onSelect(p.id)}>
+        <ViewAnnotation key={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
           <View style={[styles.pin, { backgroundColor: theme.colors.inkPrimary }]}>
             <Text style={[theme.type.micro, { color: theme.colors.surface }]}>{formatIDR(p.price)}</Text>
           </View>
-        </Marker>
+        </ViewAnnotation>
       ))}
-    </MapView>
+    </Map>
   );
+}
+
+class MapErrorBoundary extends React.Component<{ children: React.ReactNode; fallback: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {
+    // native map module unavailable — MapFallback below covers it silently
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }
 
 function MapFallback({ properties, onSelect, theme }: Props & { theme: ReturnType<typeof useTheme> }) {
   return (
     <View style={[styles.fallback, { backgroundColor: theme.colors.surfaceSoft }]}>
       <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, padding: 16 }]}>
-        Peta interaktif tersedia di aplikasi native. Berikut properti pada area ini:
+        Peta interaktif tersedia di build native (development/production). Berikut properti pada area ini:
       </Text>
       {properties.slice(0, 6).map((p) => (
         <Pressable
