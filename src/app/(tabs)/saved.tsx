@@ -23,9 +23,11 @@ export default function SavedScreen() {
   const createShortlist = useAppStore((s) => s.createShortlist);
   const watchedPriceIds = useAppStore((s) => s.watchedPriceIds);
   const priceAlerts = useAppStore((s) => s.priceAlerts);
+  const recentlyViewed = useAppStore((s) => s.recentlyViewed);
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const saved = properties.filter((p) => savedIds.has(p.id));
   const getPropertyById = (id: string) => properties.find((p) => p.id === id);
+  const recent = recentlyViewed.map(getPropertyById).filter(Boolean) as typeof properties;
   const [newShortlistName, setNewShortlistName] = useState('');
 
   const watchedAlerts = priceAlerts.filter((a) => watchedPriceIds.has(a.propertyId));
@@ -70,6 +72,24 @@ export default function SavedScreen() {
         }
         ListFooterComponent={
           <View style={{ marginTop: 12 }}>
+            {recent.length > 0 ? (
+              <View style={{ marginBottom: 20 }}>
+                <SectionHeader title="Baru dilihat" subtitle={`${recent.length} properti`} />
+                <FlatList
+                  data={recent}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(p) => p.id}
+                  contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                  renderItem={({ item }) => (
+                    <View style={{ width: 160 }}>
+                      <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
+                    </View>
+                  )}
+                />
+              </View>
+            ) : null}
+
             {watchedAlerts.length > 0 ? (
               <View style={{ marginBottom: 20 }}>
                 <SectionHeader title="Harga turun" subtitle={`${watchedAlerts.length} properti yang kamu pantau`} />

@@ -14,6 +14,12 @@ function trimZero(n: number): string {
   return n % 1 === 0 ? n.toFixed(0) : n.toFixed(1);
 }
 
+/** Grouped-thousands digits for an editable amount input, e.g. "1.500.000.000" — no Rp/M/jt abbreviation. */
+export function formatDigits(value: string): string {
+  const digits = value.replace(/[^0-9]/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 export function formatPriceLine(price: number, unit: 'total' | 'month' | 'year'): string {
   const base = formatIDR(price);
   if (unit === 'month') return `${base}/bulan`;

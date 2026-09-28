@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,6 +30,7 @@ export default function PropertyDetailScreen() {
   const [shortlistPickerOpen, setShortlistPickerOpen] = useState(false);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
+  const addRecentlyViewed = useAppStore((s) => s.addRecentlyViewed);
 
   const { data: property, isLoading } = useQuery({
     queryKey: ['property', id],
@@ -38,6 +39,11 @@ export default function PropertyDetailScreen() {
   });
   const { data: allProperties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }) : [];
+
+  useEffect(() => {
+    if (property?.id) addRecentlyViewed(property.id);
+  }, [property?.id]);
+
   if (!property) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>

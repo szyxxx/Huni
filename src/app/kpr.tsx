@@ -6,7 +6,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { Chip } from '../components/Chip';
 import { Stepper } from '../components/Stepper';
 import { calculateKpr, calculateTakeOver } from '../lib/kpr';
-import { formatIDR } from '../lib/format';
+import { formatDigits, formatIDR } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
 
 type Mode = 'new' | 'takeover';
@@ -92,8 +92,8 @@ export default function KprScreen() {
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
-                value={priceText}
-                onChangeText={setPriceText}
+                value={formatDigits(priceText)}
+                onChangeText={(t) => setPriceText(t.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
@@ -143,8 +143,8 @@ export default function KprScreen() {
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
-                value={remainingPrincipalText}
-                onChangeText={setRemainingPrincipalText}
+                value={formatDigits(remainingPrincipalText)}
+                onChangeText={(t) => setRemainingPrincipalText(t.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
@@ -156,8 +156,8 @@ export default function KprScreen() {
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
-                value={currentInstallmentText}
-                onChangeText={setCurrentInstallmentText}
+                value={formatDigits(currentInstallmentText)}
+                onChangeText={(t) => setCurrentInstallmentText(t.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
