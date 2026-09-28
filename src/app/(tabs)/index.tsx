@@ -8,6 +8,8 @@ import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { PropertyCard } from '../../components/PropertyCard';
 import { properties, popularAreas } from '../../data/properties';
+import { projects } from '../../data/projects';
+import { formatIDR } from '../../lib/format';
 import { useAppStore, SearchIntent } from '../../store/useAppStore';
 
 const INTENTS: { key: SearchIntent; label: string }[] = [
@@ -24,7 +26,6 @@ export default function HomeScreen() {
   const setIntent = useAppStore((s) => s.setIntent);
 
   const recommended = properties.filter((p) => p.fitReason);
-  const newProjects = properties.filter((p) => p.verification === 'official_developer');
 
   return (
     <ScrollView
@@ -97,8 +98,21 @@ export default function HomeScreen() {
       <View style={{ marginTop: 28 }}>
         <SectionHeader title="Proyek baru" subtitle="Dari developer resmi terverifikasi" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
-          {newProjects.map((p) => (
-            <PropertyCard key={p.id} property={p} onPress={() => router.push(`/property/${p.id}`)} />
+          {projects.map((proj) => (
+            <Pressable key={proj.id} style={styles.projectCard} onPress={() => router.push(`/project/${proj.id}`)}>
+              <Image source={{ uri: proj.images[0] }} style={styles.projectImage} contentFit="cover" />
+              <View style={{ paddingTop: 10 }}>
+                <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
+                  {proj.name}
+                </Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]} numberOfLines={1}>
+                  {proj.developer} · {proj.area}
+                </Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
+                  mulai {formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}
+                </Text>
+              </View>
+            </Pressable>
           ))}
         </ScrollView>
       </View>
@@ -156,4 +170,6 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(0,0,0,0.28)',
   },
+  projectCard: { width: 220 },
+  projectImage: { width: '100%', height: 150, borderRadius: 18 },
 });
