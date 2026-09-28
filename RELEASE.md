@@ -8,14 +8,19 @@ ship. Nothing here has been submitted — this is prep only.
 
 | # | Item | Where | Status |
 |---|------|-------|--------|
-| 1 | Google Maps API key (Android + iOS) | `app.json` → `REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY` / `_IOS_API_KEY` | Placeholder |
-| 2 | Real domain for Privacy Policy & account-deletion web pages | `src/app/account-deletion.tsx`, `src/app/privacy-policy.tsx`, `supabase/functions/shortlist-invite` (invite links use `huni.id`) | Placeholder (`huni.id`) |
-| 3 | Google Play Console developer account | — | Not created |
+| 1 | Google Maps API key (Android + iOS) — or a free/key-less map alternative | `app.json` → `REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY` / `_IOS_API_KEY` | Decision pending (Axel asked about free alternatives — map stack untouched until he picks) |
+| 2 | Domain for Privacy Policy & account-deletion web pages | `src/app/account-deletion.tsx`, `src/app/privacy-policy.tsx`, `supabase/functions/shortlist-invite` | **Decided:** `huni.id` — treat as final, already used everywhere in code |
+| 3 | Google Play Console developer account | — | **Deferred** — skipped for now per Axel, not a blocker for continued build work |
 | 4 | App signing — let Google Play App Signing manage the upload key (default with EAS + `eas.json` `production` profile) | `eas build --profile production` | Not built yet |
 | 5 | Store listing assets — icon (512×512), feature graphic (1024×500), phone screenshots (min 2) | — | Not produced (needs a real device/simulator build to screenshot) |
 
-Nothing else blocks a production build; once 1–4 exist, `eas build --profile
-production --platform android` produces a submittable AAB.
+Domain and Play Console are deferred, not resolved — `huni.id` isn't
+registered/live yet, so the privacy-policy/account-deletion links won't
+actually resolve until Axel points that domain somewhere. That's fine to
+leave as-is while building; it only matters at actual Play submission time,
+which is also deferred.
+
+The real remaining blocker for a production build is #1 (Maps).
 
 ## Data Safety form (draft answers)
 
