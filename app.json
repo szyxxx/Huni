@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Huni",
+    "slug": "huni",
+    "scheme": "huni",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": { "policy": "appVersion" },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF7C63"
+        }
+      ],
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "id.huni.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Huni menggunakan lokasimu untuk menampilkan properti terdekat dan memperkirakan waktu tempuh. Lokasi hanya diminta saat aplikasi digunakan."
+      },
+      "config": {
+        "googleMapsApiKey": "REPLACE_WITH_GOOGLE_MAPS_IOS_API_KEY"
+      }
+    },
+    "android": {
+      "package": "id.huni.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F3F0",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
