@@ -52,8 +52,9 @@ Search, and the property/project detail screens are wired to these through
 React Query. `src/auth/AuthProvider.tsx` handles Google OAuth (via
 `expo-web-browser`) and phone OTP.
 
-Not yet wired to Supabase (still local zustand/mock state): saved
-properties/searches, KPR scenarios, shortlists, price watches, and compare —
-the tables and RLS policies exist (see the migration), but the screens
-still read/write local state. Next step is swapping those stores' actions
-for Supabase reads/writes once real auth sessions exist to scope them to.
+`src/data/sync.ts` mirrors the decision workspace — saved properties, price
+watches, saved searches, KPR scenarios, and shortlists — to Supabase for
+signed-in users; `src/store/useAppStore.ts` calls it from each mutator and
+hydrates from Supabase on sign-in. Guests (no session) stay fully local, as
+before. Compare is intentionally local-only (a transient picker, not a
+saved table).

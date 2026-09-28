@@ -13,7 +13,8 @@ at the repo root.
 - Supabase (Postgres + Auth + Storage + Edge Functions) — see `supabase/README.md`
 - `@tanstack/react-query` for server state, backed by Supabase when configured
 - `zustand` for the local decision workspace (saved properties/searches, KPR
-  scenarios, shortlists, price watches) — not yet synced to Supabase
+  scenarios, shortlists, price watches) — mirrored to Supabase for
+  signed-in users, local-only for guests
 - `expo-image`, `expo-blur`, `expo-haptics`, `@shopify/flash-list`,
   `react-native-reanimated` + `react-native-gesture-handler`, `react-native-maps`
 
@@ -92,10 +93,6 @@ for readability and performance.
 
 ## Not yet implemented (see PRD §21 phases)
 
-- The decision workspace (saved properties/searches, KPR scenarios,
-  shortlists, price watches, compare) still reads/writes local zustand
-  state rather than the Supabase tables that already exist for them —
-  next step once real auth sessions are in regular use
 - Listing/media upload pipeline, Agent/Seller Portal, Admin Console
 - Full Play-release hardening: real Maps API keys, a real domain for the
   web account-deletion/privacy resources, signing, Data Safety, store
