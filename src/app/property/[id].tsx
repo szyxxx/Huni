@@ -10,6 +10,7 @@ import { VerificationBadge } from '../../components/VerificationBadge';
 import { getPropertyById, properties } from '../../data/properties';
 import { formatIDR, formatPriceLine } from '../../lib/format';
 import { useAppStore } from '../../store/useAppStore';
+import { getFitReasons } from '../../lib/recommendations';
 import { PropertyCard } from '../../components/PropertyCard';
 
 export default function PropertyDetailScreen() {
@@ -26,8 +27,11 @@ export default function PropertyDetailScreen() {
   const shortlists = useAppStore((s) => s.shortlists);
   const addToShortlist = useAppStore((s) => s.addToShortlist);
   const [shortlistPickerOpen, setShortlistPickerOpen] = useState(false);
+  const filters = useAppStore((s) => s.filters);
+  const kprScenarios = useAppStore((s) => s.kprScenarios);
 
   const property = getPropertyById(id);
+  const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }) : [];
   if (!property) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
@@ -188,14 +192,16 @@ export default function PropertyDetailScreen() {
             {property.area}, {property.city}
           </Text>
 
-          {property.fitReason ? (
+          {fitReasons.length > 0 ? (
             <View style={[styles.fitBanner, { backgroundColor: theme.colors.brandSoft }]}>
               <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>
-                Mengapa ini cocok untukmu
+                Mengapa ini mungkin cocok untukmu
               </Text>
-              <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 2 }]}>
-                {property.fitReason}
-              </Text>
+              {fitReasons.map((r) => (
+                <Text key={r.text} style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 4 }]}>
+                  · {r.text}
+                </Text>
+              ))}
             </View>
           ) : null}
 

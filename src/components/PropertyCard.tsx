@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { formatPriceLine } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
+import { getFitReasons } from '../lib/recommendations';
 import type { Property } from '../data/properties';
 
 type Props = {
@@ -17,6 +18,9 @@ export function PropertyCard({ property, onPress }: Props) {
   const theme = useTheme();
   const isSaved = useAppStore((s) => s.isSaved(property.id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
+  const filters = useAppStore((s) => s.filters);
+  const kprScenarios = useAppStore((s) => s.kprScenarios);
+  const topReason = getFitReasons(property, { filters, kprScenarios })[0];
 
   const specs = [
     property.bedrooms ? `${property.bedrooms} KT` : null,
@@ -74,10 +78,10 @@ export function PropertyCard({ property, onPress }: Props) {
             {property.nearby[0].minutes} menit dari {property.nearby[0].label.toLowerCase()}
           </Text>
         ) : null}
-        {property.fitReason ? (
+        {topReason ? (
           <View style={[styles.fitPill, { backgroundColor: theme.colors.brandSoft, marginTop: 8 }]}>
             <Text style={[theme.type.micro, { color: theme.colors.brandInk }]} numberOfLines={1}>
-              {property.fitReason}
+              {topReason.text}
             </Text>
           </View>
         ) : null}

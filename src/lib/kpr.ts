@@ -35,6 +35,37 @@ export function calculateKpr({ price, downPaymentPercent, tenorYears, ratePercen
   };
 }
 
+export type TakeOverInput = {
+  remainingPrincipal: number;
+  remainingTenorYears: number;
+  currentInstallment: number;
+  newRatePercent: number;
+};
+
+export type TakeOverResult = {
+  newInstallment: number;
+  monthlySavings: number;
+  totalSavings: number;
+};
+
+/** Take-over KPR estimator (PRD §14): refinance the remaining balance at a new rate assumption. */
+export function calculateTakeOver({
+  remainingPrincipal,
+  remainingTenorYears,
+  currentInstallment,
+  newRatePercent,
+}: TakeOverInput): TakeOverResult {
+  const { monthlyInstallment: newInstallment } = calculateKpr({
+    price: remainingPrincipal,
+    downPaymentPercent: 0,
+    tenorYears: remainingTenorYears,
+    ratePercent: newRatePercent,
+  });
+  const monthlySavings = currentInstallment - newInstallment;
+  const totalSavings = monthlySavings * remainingTenorYears * 12;
+  return { newInstallment, monthlySavings, totalSavings };
+}
+
 /** Inverse: comfortable monthly installment -> affordable price envelope, for affordability-first search. */
 export function affordablePriceFromInstallment(
   monthlyInstallment: number,

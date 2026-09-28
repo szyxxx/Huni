@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,11 @@ export default function HomeScreen() {
   const setIntent = useAppStore((s) => s.setIntent);
 
   const recommended = properties.filter((p) => p.fitReason);
+  const [homeQuery, setHomeQuery] = useState('');
+
+  const submitHomeQuery = () => {
+    router.push({ pathname: '/(tabs)/search', params: homeQuery.trim() ? { q: homeQuery } : {} });
+  };
 
   return (
     <ScrollView
@@ -46,15 +51,19 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      <Pressable
-        onPress={() => router.push('/(tabs)/search')}
-        style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-      >
+      <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={{ fontSize: 16, color: theme.colors.inkTertiary }}>⌕</Text>
-        <Text style={[theme.type.body, { color: theme.colors.inkTertiary, marginLeft: 8 }]}>
-          "rumah 3 kamar dekat ITB cicilan 8 juta"
-        </Text>
-      </Pressable>
+        <TextInput
+          value={homeQuery}
+          onChangeText={setHomeQuery}
+          onSubmitEditing={submitHomeQuery}
+          onFocus={() => { if (!homeQuery) router.push('/(tabs)/search'); }}
+          placeholder='"rumah 3 kamar dekat ITB cicilan 8 juta"'
+          placeholderTextColor={theme.colors.inkTertiary}
+          returnKeyType="search"
+          style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
+        />
+      </View>
 
       <Pressable
         onPress={() => router.push('/kpr')}

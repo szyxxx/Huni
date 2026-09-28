@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
@@ -8,6 +8,7 @@ import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
 import { properties } from '../../data/properties';
 import { useAppStore } from '../../store/useAppStore';
+import { parseIntentQuery } from '../../lib/intentParser';
 
 const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi'];
 
@@ -15,14 +16,32 @@ export default function SearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ q?: string }>();
   const intent = useAppStore((s) => s.intent);
+  const setIntent = useAppStore((s) => s.setIntent);
   const filters = useAppStore((s) => s.filters);
   const addSavedSearch = useAppStore((s) => s.addSavedSearch);
   const compareIds = useAppStore((s) => s.compareIds);
   const toggleCompare = useAppStore((s) => s.toggleCompare);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(params.q ?? '');
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
+  const [removedChipKeys, setRemovedChipKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (params.q) setQuery(params.q);
+  }, [params.q]);
+
+  const parsed = useMemo(() => parseIntentQuery(query), [query]);
+  const activeChips = parsed.chips.filter((c) => !removedChipKeys.has(c.key));
+
+  useEffect(() => {
+    setRemovedChipKeys(new Set());
+  }, [query]);
+
+  useEffect(() => {
+    if (!removedChipKeys.has('intent') && parsed.intent) setIntent(parsed.intent);
+  }, [parsed.intent, removedChipKeys]);
 
   const activeFilterCount =
     filters.types.length +
@@ -36,12 +55,25 @@ export default function SearchScreen() {
 
   const results = useMemo(() => {
     let list = properties.filter((p) => p.intent === (intent === 'new-projects' ? 'buy' : intent));
-    if (query.trim()) {
+
+    const hasChip = (key: string) => activeChips.some((c) => c.key === key);
+
+    if (hasChip('type') && parsed.type) list = list.filter((p) => p.type === parsed.type);
+    if (hasChip('bedrooms') && parsed.bedrooms) list = list.filter((p) => (p.bedrooms ?? 0) >= parsed.bedrooms!);
+    if (hasChip('maxInstallment') && parsed.maxInstallment)
+      list = list.filter((p) => !p.estimatedInstallment || p.estimatedInstallment <= parsed.maxInstallment!);
+    if (hasChip('maxPrice') && parsed.maxPrice) list = list.filter((p) => p.price <= parsed.maxPrice!);
+    if (hasChip('location') && parsed.location) {
+      const loc = parsed.location.toLowerCase();
+      list = list.filter((p) => p.area.toLowerCase().includes(loc) || p.city.toLowerCase().includes(loc));
+    }
+    if (!parsed.chips.length && query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(
         (p) => p.title.toLowerCase().includes(q) || p.area.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)
       );
     }
+
     if (filters.types.length) list = list.filter((p) => filters.types.includes(p.type));
     if (filters.minPrice) list = list.filter((p) => p.price >= filters.minPrice!);
     if (filters.maxPrice) list = list.filter((p) => p.price <= filters.maxPrice!);
@@ -55,7 +87,7 @@ export default function SearchScreen() {
     if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);
     if (sort === 'Terbaru') list = [...list].sort((a, b) => (a.lastConfirmed < b.lastConfirmed ? 1 : -1));
     return list;
-  }, [intent, query, sort, filters]);
+  }, [intent, query, sort, filters, activeChips, parsed]);
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: true });
@@ -76,7 +108,7 @@ export default function SearchScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Cari lokasi, proyek, atau tipe properti"
+            placeholder='Coba: "rumah 3 kamar dekat ITB cicilan 8 juta"'
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
           />
@@ -94,6 +126,21 @@ export default function SearchScreen() {
           <Text style={{ color: theme.colors.inkPrimary, fontSize: 16 }}>{view === 'list' ? '⊞' : '☰'}</Text>
         </Pressable>
       </View>
+
+      {activeChips.length > 0 ? (
+        <View style={styles.parsedChipRow}>
+          <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginRight: 4 }]}>DIPAHAMI SEBAGAI:</Text>
+          {activeChips.map((c) => (
+            <Pressable
+              key={c.key}
+              onPress={() => setRemovedChipKeys((prev) => new Set(prev).add(c.key))}
+              style={[styles.parsedChip, { backgroundColor: theme.colors.brandSoft }]}
+            >
+              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{c.label} ✕</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <FlatList
         data={SORTS}
@@ -183,6 +230,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   toggleBtn: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  parsedChipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 6 },
+  parsedChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   sortRow: { paddingHorizontal: 20, gap: 8 },
   resultRow: {
     flexDirection: 'row',

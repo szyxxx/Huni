@@ -3,11 +3,14 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
+import { Chip } from '../components/Chip';
 import { Stepper } from '../components/Stepper';
-import { calculateKpr } from '../lib/kpr';
+import { calculateKpr, calculateTakeOver } from '../lib/kpr';
 import { formatIDR } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
 import { getPropertyById } from '../data/properties';
+
+type Mode = 'new' | 'takeover';
 
 export default function KprScreen() {
   const theme = useTheme();
@@ -16,6 +19,7 @@ export default function KprScreen() {
   const params = useLocalSearchParams<{ propertyId?: string }>();
   const prefill = params.propertyId ? getPropertyById(params.propertyId) : undefined;
   const addKprScenario = useAppStore((s) => s.addKprScenario);
+  const [mode, setMode] = useState<Mode>('new');
 
   const [priceText, setPriceText] = useState(String(prefill?.price ?? 1_500_000_000));
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
@@ -28,21 +32,42 @@ export default function KprScreen() {
     [price, downPaymentPercent, tenorYears, ratePercent]
   );
 
+  const [remainingPrincipalText, setRemainingPrincipalText] = useState('800000000');
+  const [remainingTenorYears, setRemainingTenorYears] = useState(10);
+  const [currentInstallmentText, setCurrentInstallmentText] = useState('9500000');
+  const [newRatePercent, setNewRatePercent] = useState(6.5);
+
+  const remainingPrincipal = Number(remainingPrincipalText.replace(/[^0-9]/g, '')) || 0;
+  const currentInstallment = Number(currentInstallmentText.replace(/[^0-9]/g, '')) || 0;
+  const takeOverResult = useMemo(
+    () => calculateTakeOver({ remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent }),
+    [remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent]
+  );
+
   const save = () => {
-    addKprScenario({
-      label: prefill ? prefill.title : `Simulasi ${formatIDR(price)}`,
-      price,
-      downPaymentPercent,
-      tenorYears,
-      ratePercent,
-      monthlyInstallment: result.monthlyInstallment,
-    });
+    if (mode === 'new') {
+      addKprScenario({
+        label: prefill ? prefill.title : `Simulasi ${formatIDR(price)}`,
+        price,
+        downPaymentPercent,
+        tenorYears,
+        ratePercent,
+        monthlyInstallment: result.monthlyInstallment,
+      });
+    } else {
+      addKprScenario({
+        label: `Take-over KPR ${formatIDR(remainingPrincipal)}`,
+        price: remainingPrincipal,
+        downPaymentPercent: 0,
+        tenorYears: remainingTenorYears,
+        ratePercent: newRatePercent,
+        monthlyInstallment: takeOverResult.newInstallment,
+      });
+    }
     if (Platform.OS === 'web') {
       router.back();
     } else {
-      Alert.alert('Tersimpan', 'Simulasi KPR disimpan ke workspace kamu.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert('Tersimpan', 'Simulasi disimpan ke workspace kamu.', [{ text: 'OK', onPress: () => router.back() }]);
     }
   };
 
@@ -57,51 +82,123 @@ export default function KprScreen() {
         </Text>
       </View>
 
+      <View style={styles.modeRow}>
+        <Chip label="KPR baru" selected={mode === 'new'} onPress={() => setMode('new')} />
+        <Chip label="Take-over KPR" selected={mode === 'takeover'} onPress={() => setMode('takeover')} />
+      </View>
+
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Harga properti</Text>
-        <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
-          <TextInput
-            value={priceText}
-            onChangeText={setPriceText}
-            keyboardType="number-pad"
-            style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
-          />
-        </View>
+        {mode === 'new' ? (
+          <>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Harga properti</Text>
+            <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
+              <TextInput
+                value={priceText}
+                onChangeText={setPriceText}
+                keyboardType="number-pad"
+                style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
+              />
+            </View>
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Stepper
-            label="Uang muka"
-            value={`${downPaymentPercent}%  ·  ${formatIDR(price * (downPaymentPercent / 100))}`}
-            onDecrease={() => setDownPaymentPercent((v) => Math.max(5, v - 5))}
-            onIncrease={() => setDownPaymentPercent((v) => Math.min(90, v + 5))}
-          />
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          <Stepper
-            label="Tenor"
-            value={`${tenorYears} tahun`}
-            onDecrease={() => setTenorYears((v) => Math.max(1, v - 1))}
-            onIncrease={() => setTenorYears((v) => Math.min(30, v + 1))}
-          />
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          <Stepper
-            label="Asumsi suku bunga"
-            value={`${ratePercent.toFixed(1)}% / tahun`}
-            onDecrease={() => setRatePercent((v) => Math.max(2, Math.round((v - 0.25) * 100) / 100))}
-            onIncrease={() => setRatePercent((v) => Math.min(20, Math.round((v + 0.25) * 100) / 100))}
-          />
-        </View>
+            <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Stepper
+                label="Uang muka"
+                value={`${downPaymentPercent}%  ·  ${formatIDR(price * (downPaymentPercent / 100))}`}
+                onDecrease={() => setDownPaymentPercent((v) => Math.max(5, v - 5))}
+                onIncrease={() => setDownPaymentPercent((v) => Math.min(90, v + 5))}
+              />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+              <Stepper
+                label="Tenor"
+                value={`${tenorYears} tahun`}
+                onDecrease={() => setTenorYears((v) => Math.max(1, v - 1))}
+                onIncrease={() => setTenorYears((v) => Math.min(30, v + 1))}
+              />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+              <Stepper
+                label="Asumsi suku bunga"
+                value={`${ratePercent.toFixed(1)}% / tahun`}
+                onDecrease={() => setRatePercent((v) => Math.max(2, Math.round((v - 0.25) * 100) / 100))}
+                onIncrease={() => setRatePercent((v) => Math.min(20, Math.round((v + 0.25) * 100) / 100))}
+              />
+            </View>
 
-        <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
-          <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>Estimasi cicilan bulanan</Text>
-          <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
-            {formatIDR(result.monthlyInstallment)}
-          </Text>
-          <View style={styles.resultRow}>
-            <ResultItem label="Jumlah pinjaman" value={formatIDR(result.loanAmount)} />
-            <ResultItem label="Total uang muka" value={formatIDR(result.downPaymentAmount)} />
-          </View>
-        </View>
+            <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>Estimasi cicilan bulanan</Text>
+              <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
+                {formatIDR(result.monthlyInstallment)}
+              </Text>
+              <View style={styles.resultRow}>
+                <ResultItem label="Jumlah pinjaman" value={formatIDR(result.loanAmount)} />
+                <ResultItem label="Total uang muka" value={formatIDR(result.downPaymentAmount)} />
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginBottom: 12 }]}>
+              Pindahkan sisa cicilan KPR-mu ke suku bunga baru dan lihat estimasi penghematannya.
+            </Text>
+
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Sisa pokok pinjaman</Text>
+            <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
+              <TextInput
+                value={remainingPrincipalText}
+                onChangeText={setRemainingPrincipalText}
+                keyboardType="number-pad"
+                style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
+              />
+            </View>
+
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>
+              Cicilan saat ini per bulan
+            </Text>
+            <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
+              <TextInput
+                value={currentInstallmentText}
+                onChangeText={setCurrentInstallmentText}
+                keyboardType="number-pad"
+                style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
+              />
+            </View>
+
+            <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Stepper
+                label="Sisa tenor"
+                value={`${remainingTenorYears} tahun`}
+                onDecrease={() => setRemainingTenorYears((v) => Math.max(1, v - 1))}
+                onIncrease={() => setRemainingTenorYears((v) => Math.min(30, v + 1))}
+              />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+              <Stepper
+                label="Suku bunga baru"
+                value={`${newRatePercent.toFixed(1)}% / tahun`}
+                onDecrease={() => setNewRatePercent((v) => Math.max(2, Math.round((v - 0.25) * 100) / 100))}
+                onIncrease={() => setNewRatePercent((v) => Math.min(20, Math.round((v + 0.25) * 100) / 100))}
+              />
+            </View>
+
+            <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>Cicilan baru per bulan</Text>
+              <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
+                {formatIDR(takeOverResult.newInstallment)}
+              </Text>
+              <View style={styles.resultRow}>
+                <ResultItem
+                  label="Hemat per bulan"
+                  value={`${takeOverResult.monthlySavings >= 0 ? '' : '-'}${formatIDR(Math.abs(takeOverResult.monthlySavings))}`}
+                />
+                <ResultItem
+                  label="Estimasi hemat total"
+                  value={`${takeOverResult.totalSavings >= 0 ? '' : '-'}${formatIDR(Math.abs(takeOverResult.totalSavings))}`}
+                />
+              </View>
+            </View>
+          </>
+        )}
 
         <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 14, lineHeight: 16 }]}>
           HASIL INI ADALAH ESTIMASI, BUKAN PERSETUJUAN, PENAWARAN, ATAU KEPUTUSAN PEMBERIAN PINJAMAN DARI BANK
@@ -128,6 +225,7 @@ function ResultItem({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
+  modeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 4 },
   priceInput: {
     flexDirection: 'row',
     alignItems: 'center',
