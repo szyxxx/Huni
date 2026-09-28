@@ -118,5 +118,5 @@ export default function ShortlistScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
-  inviteBanner: { flexDirection: 'row', alignItems: 'center', borderRadius: 18, padding: 16, marginBottom: 16 },
+  inviteBanner: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginBottom: 16 },
 });

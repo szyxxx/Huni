@@ -107,6 +107,6 @@ export default function NotificationsSettingsScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
-  warning: { borderRadius: 14, padding: 14, marginBottom: 6 },
+  warning: { borderRadius: 12, padding: 14, marginBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth },
 });

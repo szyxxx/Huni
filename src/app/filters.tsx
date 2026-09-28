@@ -128,7 +128,7 @@ export default function FiltersScreen() {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  card: { marginTop: 20, paddingHorizontal: 16, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth },
+  card: { marginTop: 20, paddingHorizontal: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   divider: { height: StyleSheet.hairlineWidth },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
   applyBtn: { paddingVertical: 16, borderRadius: 16, alignItems: 'center' },

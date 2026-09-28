@@ -144,7 +144,7 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
-  notice: { marginTop: 20, borderRadius: 14, padding: 14 },
-  button: { paddingVertical: 15, borderRadius: 14, alignItems: 'center' },
-  phoneInput: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, height: 52, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
+  notice: { marginTop: 20, borderRadius: 12, padding: 14 },
+  button: { paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+  phoneInput: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, height: 52, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
 });

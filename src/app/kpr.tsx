@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   card: {
     marginTop: 20,
     paddingHorizontal: 16,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
   },
   divider: { height: StyleSheet.hairlineWidth },

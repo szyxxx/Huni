@@ -187,5 +187,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.28)',
   },
   projectCard: { width: 220 },
-  projectImage: { width: '100%', height: 150, borderRadius: 18 },
+  projectImage: { width: '100%', height: 150, borderRadius: 16 },
 });
