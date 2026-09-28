@@ -4,6 +4,8 @@ import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { registerPushToken } from '../lib/pushNotifications';
+import { pullUserData } from '../data/sync';
+import { useAppStore } from '../store/useAppStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,13 +36,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (data.session?.user) syncUser(data.session.user.id);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
-      if (newSession?.user) registerPushToken(newSession.user.id);
+      if (newSession?.user) {
+        registerPushToken(newSession.user.id);
+        syncUser(newSession.user.id);
+      } else {
+        useAppStore.getState().setSyncUserId(null);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  async function syncUser(userId: string) {
+    useAppStore.getState().setSyncUserId(userId);
+    const remote = await pullUserData(userId);
+    if (remote) useAppStore.getState().hydrateFromRemote(remote);
+  }
 
   const value = useMemo<AuthContextValue>(
     () => ({
