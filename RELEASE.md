@@ -16,12 +16,13 @@ ship. Nothing here has been submitted — this is prep only.
 
 Domain and Play Console are deferred, not resolved — `huni.id` isn't
 registered/live yet, so the privacy-policy/account-deletion links won't
-actually resolve until Axel points that domain somewhere. That's fine to
-leave as-is while building; it only matters at actual Play submission time,
-which is also deferred.
+actually resolve until Axel points that domain somewhere. These are release
+blockers; the app must not be submitted to Play before both pages work.
 
-No blockers remain for a production build — everything above is either
-decided or deferred without blocking. Axel still needs a one-time
+Before release, apply all Supabase migrations, deploy and schedule the two
+admin functions described in `supabase/README.md`, verify account deletion
+end to end, and test push on a real device. The privacy-policy text remains
+a draft requiring owner/legal review. Axel still needs a one-time
 `eas build --profile development` to see the real map on his phone
 (MapLibre's native module isn't in Expo Go).
 
@@ -42,7 +43,8 @@ today (Supabase auth + the decision-workspace tables in
   operate: Supabase (data processor, hosting) and Google/Firebase (auth,
   push delivery).
 - **Security:** Data encrypted in transit (HTTPS/TLS to Supabase); Row
-  Level Security scopes every table to `auth.uid()`.
+  Level Security restricts private workspace tables to their owners or
+  invited shortlist members. Public catalogue tables are intentionally readable.
 - **Deletion:** In-app account deletion (`src/app/account-deletion.tsx`)
   plus a web page fallback, per Play's requirement — the web page's URL
   needs item #2 above before it can be listed.
@@ -73,7 +75,7 @@ Ketik "rumah 3 kamar dekat ITB cicilan 8 juta" dan Huni langsung
 menerjemahkannya jadi filter yang bisa kamu sesuaikan.
 
 🏠 Semua yang kamu butuh sebelum memutuskan
-Peta harga real-time, estimasi waktu tempuh ke sekolah/kantor, foto
+Peta properti, informasi lokasi sekitar, foto
 fullscreen dengan zoom, dan alasan jujur kenapa sebuah properti cocok
 untukmu — bukan skor rahasia.
 

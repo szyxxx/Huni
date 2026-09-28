@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,16 +7,6 @@ import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../lib/supabase';
 
-const ACCOUNT_DELETION_WEB_URL = 'https://huni.id/hapus-akun';
-
-/**
- * Satisfies Play's in-app account-deletion requirement (PRD §17, §18.7): the same
- * request must also be reachable from a public web resource registered in Play
- * Console, linked below. The actual account/data purge needs an admin process
- * with the service_role key (never run from the client) — this records a durable
- * request row in `account_deletion_requests` for that process to pick up within
- * the stated 30-day window, rather than only showing a confirmation dialog.
- */
 export default function AccountDeletionScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -24,19 +14,27 @@ export default function AccountDeletionScreen() {
   const { user, configured, signOut } = useAuth();
 
   const submitRequest = async () => {
-    if (configured && user && supabase) {
-      const { error } = await supabase
-        .from('account_deletion_requests')
-        .upsert({ user_id: user.id, status: 'pending' }, { onConflict: 'user_id,status' });
-      if (error) {
-        Alert.alert('Gagal mengirim permintaan', error.message);
-        return;
-      }
-      await signOut();
+    if (!configured || !user || !supabase) {
+      Alert.alert('Masuk diperlukan', 'Masuk ke akunmu sebelum mengajukan penghapusan.');
+      return;
     }
-    const done = 'Permintaan diterima. Akan diproses dalam 30 hari sesuai kebijakan privasi kami.';
+    const { error } = await supabase
+      .from('account_deletion_requests')
+      .insert({ user_id: user.id, status: 'pending' });
+    if (error && error.code !== '23505') {
+      Alert.alert('Gagal mengirim permintaan', error.message);
+      return;
+    }
+    try {
+      await signOut();
+    } catch {
+      const message = 'Permintaan tercatat, tetapi keluar dari server gagal. Periksa sesi akunmu lagi.';
+      if (Platform.OS === 'web') alert(message);
+      else Alert.alert('Perlu perhatian', message);
+      return;
+    }
+    const done = 'Permintaan penghapusan akun tercatat. Proses penghapusan akan dijalankan oleh pengelola layanan.';
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       alert(done);
     } else {
       Alert.alert('Permintaan diterima', done);
@@ -45,11 +43,12 @@ export default function AccountDeletionScreen() {
   };
 
   const requestDeletion = () => {
-    const confirmMsg = configured && user
-      ? 'Permintaan penghapusan akun akan diproses dalam 30 hari sesuai kebijakan privasi kami. Kamu akan langsung keluar dari akun ini.'
-      : 'Kamu belum masuk akun, jadi belum ada data akun untuk dihapus di server — ini hanya mencatat niatmu secara lokal.';
+    if (!configured || !user) {
+      router.push('/sign-in');
+      return;
+    }
+    const confirmMsg = 'Kamu akan langsung keluar setelah permintaan penghapusan akun tercatat. Lanjutkan?';
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       if (confirm(`${confirmMsg}\n\nLanjutkan?`)) submitRequest();
     } else {
       Alert.alert('Hapus akun', confirmMsg, [
@@ -79,15 +78,6 @@ export default function AccountDeletionScreen() {
           <Text style={[theme.type.captionStrong, { color: '#fff' }]}>Ajukan penghapusan akun</Text>
         </Pressable>
 
-        <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 20 }]}>
-          Kamu juga bisa mengajukan penghapusan tanpa membuka aplikasi melalui halaman web berikut, sesuai
-          persyaratan Google Play:
-        </Text>
-        <Pressable onPress={() => Linking.openURL(ACCOUNT_DELETION_WEB_URL).catch(() => {})}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, marginTop: 6 }]}>
-            {ACCOUNT_DELETION_WEB_URL}
-          </Text>
-        </Pressable>
       </ScrollView>
     </View>
   );

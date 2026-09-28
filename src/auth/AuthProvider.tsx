@@ -2,10 +2,13 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { registerPushToken } from '../lib/pushNotifications';
 import { pullUserData } from '../data/sync';
 import { useAppStore } from '../store/useAppStore';
+import { createWorkspaceSessionController } from './workspaceSession';
+import { captureGuestWorkspace, GuestWorkspaceStorage } from '../store/guestWorkspace';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,32 +32,87 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-      if (data.session?.user) syncUser(data.session.user.id);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        registerPushToken(newSession.user.id);
-        syncUser(newSession.user.id);
-      } else {
-        useAppStore.getState().setSyncUserId(null);
+    let mounted = true;
+    let eventVersion = 0;
+    let persistGuest = false;
+    let lastGuestSnapshot = '';
+    const guestStorage = new GuestWorkspaceStorage(AsyncStorage);
+    const controller = createWorkspaceSessionController({
+      getState: useAppStore.getState,
+      setSyncUserId: (userId) => useAppStore.getState().setSyncUserId(userId),
+      hydrateFromRemote: (data) => useAppStore.getState().hydrateFromRemote(data),
+      setSyncError: (message) => useAppStore.getState().setSyncError(message),
+    }, pullUserData);
+
+    const unsubscribeStore = useAppStore.subscribe((state) => {
+      if (persistGuest && !state.syncUserId) {
+        const snapshot = captureGuestWorkspace(state);
+        const serialized = JSON.stringify(snapshot);
+        if (serialized === lastGuestSnapshot) return;
+        lastGuestSnapshot = serialized;
+        void guestStorage.save(snapshot).catch(() => {
+          useAppStore.getState().setSyncError('Data tamu gagal disimpan di perangkat.');
+        });
       }
     });
-    return () => listener.subscription.unsubscribe();
-  }, []);
 
-  async function syncUser(userId: string) {
-    useAppStore.getState().setSyncUserId(userId);
-    const remote = await pullUserData(userId);
-    if (remote) useAppStore.getState().hydrateFromRemote(remote);
-  }
+    const boot = guestStorage.load().then((guest) => {
+      if (!mounted) return;
+      if (guest) {
+        useAppStore.getState().hydrateGuest(guest);
+        lastGuestSnapshot = JSON.stringify(guest);
+      }
+      if (!supabase) {
+        persistGuest = true;
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (mounted) {
+        useAppStore.getState().setSyncError('Data tamu gagal dibuka dari perangkat.');
+        if (!supabase) setLoading(false);
+      }
+    });
+
+    const subscription = supabase?.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      const userId = newSession?.user.id ?? null;
+      const version = ++eventVersion;
+      if (userId !== useAppStore.getState().syncUserId) setLoading(true);
+      // Supabase API calls from inside an auth callback can deadlock.
+      setTimeout(async () => {
+        await boot;
+        if (!mounted || version !== eventVersion) return;
+        persistGuest = false;
+        await controller.setUser(userId);
+        if (!mounted || version !== eventVersion) return;
+        if (!userId) {
+          try {
+            const guest = await guestStorage.load();
+            if (guest) {
+              useAppStore.getState().hydrateGuest(guest);
+              lastGuestSnapshot = JSON.stringify(guest);
+            }
+          } catch {
+            useAppStore.getState().setSyncError('Data tamu gagal dibuka dari perangkat.');
+          }
+          if (!mounted || version !== eventVersion) return;
+          persistGuest = true;
+        }
+        setLoading(false);
+        if (userId) void registerPushToken(userId);
+      }, 0);
+    });
+    return () => {
+      mounted = false;
+      controller.cancel();
+      persistGuest = false;
+      unsubscribeStore();
+      subscription?.data.subscription.unsubscribe();
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -90,13 +148,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return error ? { error: error.message } : {};
       },
       signOut: async () => {
-        await supabase?.auth.signOut();
+        useAppStore.getState().setSyncUserId(null);
+        setSession(null);
+        const { error } = await supabase?.auth.signOut() ?? { error: null };
+        if (error) throw error;
       },
     }),
     [session, loading]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{loading ? null : children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

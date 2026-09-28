@@ -14,6 +14,7 @@ import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
 import { getFitReasons } from '../../lib/recommendations';
 
 const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi', 'Luas terbesar'];
+const EMPTY_CHIPS = new Set<string>();
 
 export default function SearchScreen() {
   const theme = useTheme();
@@ -32,10 +33,14 @@ export default function SearchScreen() {
   const addSearchHistory = useAppStore((s) => s.addSearchHistory);
   const clearSearchHistory = useAppStore((s) => s.clearSearchHistory);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [query, setQuery] = useState(params.q ?? '');
+  const routeQuery = params.q ?? '';
+  const [queryInput, setQueryInput] = useState({ routeQuery, value: routeQuery });
+  const query = queryInput.routeQuery === routeQuery ? queryInput.value : routeQuery;
+  const setQuery = (value: string) => setQueryInput({ routeQuery, value });
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
-  const [removedChipKeys, setRemovedChipKeys] = useState<Set<string>>(new Set());
+  const [chipState, setChipState] = useState<{ query: string; removed: Set<string> }>({ query, removed: new Set() });
+  const removedChipKeys = chipState.query === query ? chipState.removed : EMPTY_CHIPS;
   const {
     data: properties = [],
     error,
@@ -44,11 +49,8 @@ export default function SearchScreen() {
   } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
 
   useEffect(() => {
-    if (params.q) {
-      setQuery(params.q);
-      addSearchHistory(params.q);
-    }
-  }, [params.q]);
+    if (routeQuery) addSearchHistory(routeQuery);
+  }, [routeQuery, addSearchHistory]);
 
   const parsed = useMemo(() => parseIntentQuery(query), [query]);
   const activeChips = parsed.chips.filter((c) => !removedChipKeys.has(c.key));
@@ -58,12 +60,8 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
-    setRemovedChipKeys(new Set());
-  }, [query]);
-
-  useEffect(() => {
     if (!removedChipKeys.has('intent') && parsed.intent) setIntent(parsed.intent);
-  }, [parsed.intent, removedChipKeys]);
+  }, [parsed.intent, removedChipKeys, setIntent]);
 
   const activeFilterCount =
     filters.types.length +
@@ -126,13 +124,12 @@ export default function SearchScreen() {
       );
     }
     return list;
-  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios]);
+  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios, properties]);
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: true });
-    const msg = 'Pencarian disimpan. Kamu akan diberi tahu saat ada properti baru yang cocok.';
+    const msg = 'Pencarian disimpan di workspace kamu.';
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       alert(msg);
     } else {
       Alert.alert('Pencarian tersimpan', msg);
@@ -218,7 +215,7 @@ export default function SearchScreen() {
           {activeChips.map((c) => (
             <Pressable
               key={c.key}
-              onPress={() => setRemovedChipKeys((prev) => new Set(prev).add(c.key))}
+              onPress={() => setChipState({ query, removed: new Set(removedChipKeys).add(c.key) })}
               style={[styles.parsedChip, { backgroundColor: theme.colors.brandSoft }]}
             >
               <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{c.label} ✕</Text>

@@ -42,6 +42,7 @@ export function PropertyMapView({ properties, onSelect }: Props) {
 
 function MapLibreView({ properties, onSelect, theme }: Props & { theme: ReturnType<typeof useTheme> }) {
   // Required inline (not top-level) so web/Expo Go never evaluate this native import.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Map, Camera, ViewAnnotation } = require('@maplibre/maplibre-react-native');
 
   const center: [number, number] =

@@ -16,6 +16,8 @@ import { formatIDR, formatPriceLine } from '../../lib/format';
 import { useAppStore } from '../../store/useAppStore';
 import { getFitReasons } from '../../lib/recommendations';
 import { PropertyCard } from '../../components/PropertyCard';
+import { useAuth } from '../../auth/AuthProvider';
+import { supabase } from '../../lib/supabase';
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +26,7 @@ export default function PropertyDetailScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [imageIndex, setImageIndex] = useState(0);
+  const { user } = useAuth();
   const isSaved = useAppStore((s) => s.isSaved(id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
   const isWatchingPrice = useAppStore((s) => s.isWatchingPrice(id));
@@ -35,7 +38,7 @@ export default function PropertyDetailScreen() {
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addRecentlyViewed = useAppStore((s) => s.addRecentlyViewed);
 
-  const { data: property, isLoading } = useQuery({
+  const { data: property, isLoading, error: propertyError, refetch: refetchProperty } = useQuery({
     queryKey: ['property', id],
     queryFn: () => fetchPropertyById(id),
     enabled: Boolean(id),
@@ -45,7 +48,7 @@ export default function PropertyDetailScreen() {
 
   useEffect(() => {
     if (property?.id) addRecentlyViewed(property.id);
-  }, [property?.id]);
+  }, [property?.id, addRecentlyViewed]);
 
   if (!property) {
     if (isLoading) {
@@ -61,19 +64,26 @@ export default function PropertyDetailScreen() {
     }
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Properti tidak ditemukan.</Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+          {propertyError ? 'Properti belum dapat dimuat.' : 'Properti tidak ditemukan.'}
+        </Text>
+        {propertyError ? <Pressable onPress={() => { void refetchProperty(); }} style={{ marginTop: 12 }}>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Coba lagi</Text>
+        </Pressable> : null}
       </View>
     );
   }
 
   const similar = allProperties.filter((p) => p.id !== property.id && p.type === property.type).slice(0, 4);
   const contactWhatsApp = () => {
+    const phone = property.advertiser.contactPhone;
+    if (!phone) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const text = encodeURIComponent(`Halo, saya tertarik dengan "${property.title}" di Huni.`);
-    Linking.openURL(`https://wa.me/6281200000000?text=${text}`).catch(() => {});
+    Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {});
   };
   const shareProperty = () => {
-    const link = `https://huni.id/property/${property.id}`;
+    const link = `huni://property/${property.id}`;
     Share.share({
       message: `Lihat "${property.title}" di Huni: ${formatPriceLine(property.price, property.priceUnit)} — ${link}`,
       url: link,
@@ -82,15 +92,31 @@ export default function PropertyDetailScreen() {
   const watchVideo = () => {
     if (property.videoUrl) Linking.openURL(property.videoUrl).catch(() => {});
   };
+  const submitReport = async () => {
+    if (!user) {
+      router.push('/sign-in');
+      return;
+    }
+    if (!supabase) {
+      const message = 'Pelaporan belum tersedia di mode demo.';
+      if (Platform.OS === 'web') alert(message);
+      else Alert.alert('Belum tersedia', message);
+      return;
+    }
+    const { error } = await supabase.from('listing_reports').insert({ property_id: property.id, reporter_id: user.id });
+    const title = error ? 'Gagal mengirim laporan' : 'Laporan diterima';
+    const message = error ? error.message : 'Tim kami akan meninjau iklan ini.';
+    if (Platform.OS === 'web') alert(`${title}\n\n${message}`);
+    else Alert.alert(title, message);
+  };
   const reportListing = () => {
     const msg = 'Laporkan iklan ini karena tidak akurat, sudah terjual, atau melanggar aturan?';
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      if (confirm(msg)) alert('Laporan diterima. Tim kami akan meninjau iklan ini.');
+      if (confirm(msg)) void submitReport();
     } else {
       Alert.alert('Laporkan iklan', msg, [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Laporkan', style: 'destructive', onPress: () => Alert.alert('Laporan diterima', 'Tim kami akan meninjau iklan ini.') },
+        { text: 'Laporkan', style: 'destructive', onPress: () => { void submitReport(); } },
       ]);
     }
   };
@@ -342,8 +368,10 @@ export default function PropertyDetailScreen() {
             {formatPriceLine(property.price, property.priceUnit)}
           </Text>
         </View>
-        <Pressable onPress={contactWhatsApp} style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Hubungi via WhatsApp</Text>
+        <Pressable disabled={!property.advertiser.contactPhone} onPress={contactWhatsApp} style={[styles.contactBtn, { backgroundColor: property.advertiser.contactPhone ? theme.colors.inkPrimary : theme.colors.inkTertiary }]}>
+          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
+            {property.advertiser.contactPhone ? 'Hubungi via WhatsApp' : 'Kontak belum tersedia'}
+          </Text>
         </Pressable>
       </GlassSurface>
     </View>

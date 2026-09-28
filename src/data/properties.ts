@@ -23,7 +23,7 @@ export type Property = {
   verification: VerificationTier;
   promotion: PromotionTier;
   fitReason?: string;
-  advertiser: { name: string; isAgency: boolean };
+  advertiser: { name: string; isAgency: boolean; contactPhone?: string };
   lat: number;
   lng: number;
   facilities: string[];

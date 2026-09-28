@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
 import { SectionHeader } from '../../components/SectionHeader';
+import { DataStatus } from '../../components/DataStatus';
 import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 import { formatIDR } from '../../lib/format';
@@ -16,6 +17,7 @@ export default function SavedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const savedIds = useAppStore((s) => s.savedIds);
+  const syncError = useAppStore((s) => s.syncError);
   const savedSearches = useAppStore((s) => s.savedSearches);
   const removeSavedSearch = useAppStore((s) => s.removeSavedSearch);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
@@ -27,7 +29,7 @@ export default function SavedScreen() {
   const recentlyViewed = useAppStore((s) => s.recentlyViewed);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
-  const { data: properties = [], isFetching, refetch } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const { data: properties = [], error: propertiesError, isFetching, refetch } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const saved = properties.filter((p) => savedIds.has(p.id));
   const hidden = properties.filter((p) => hiddenIds.has(p.id));
   const getPropertyById = (id: string) => properties.find((p) => p.id === id);
@@ -54,6 +56,10 @@ export default function SavedScreen() {
           Properti tersimpan, pencarian, dan simulasi KPR
         </Text>
       </View>
+      {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
+      {propertiesError ? (
+        <DataStatus message="Properti tersimpan belum dapat dimuat. Periksa koneksi lalu coba lagi." onRetry={() => { void refetch(); }} />
+      ) : null}
 
       <FlatList
         data={saved}
@@ -159,7 +165,7 @@ export default function SavedScreen() {
               <SectionHeader title="Pencarian tersimpan" subtitle={`${savedSearches.length} pencarian`} />
             {savedSearches.length === 0 ? (
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, paddingHorizontal: 20 }]}>
-                Simpan pencarian dari layar Cari untuk mendapat notifikasi saat ada yang cocok.
+                Simpan pencarian dari layar Cari untuk menggunakannya lagi nanti.
               </Text>
             ) : (
               <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -168,7 +174,7 @@ export default function SavedScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{s.label}</Text>
                       <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                        {s.notify ? 'Notifikasi aktif' : 'Notifikasi nonaktif'}
+                        Pencarian tersimpan
                       </Text>
                     </View>
                     <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8}>

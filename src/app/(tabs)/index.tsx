@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { PropertyCard } from '../../components/PropertyCard';
+import { DataStatus } from '../../components/DataStatus';
 import { getPopularAreas } from '../../data/properties';
 import { fetchProperties, fetchProjects } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
@@ -36,20 +37,21 @@ export default function HomeScreen() {
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
+  const syncError = useAppStore((s) => s.syncError);
   const { user } = useAuth();
   const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0];
 
-  const { data: properties = [], isFetching: loadingProperties, refetch: refetchProperties } = useQuery({
+  const { data: properties = [], error: propertiesError, isFetching: loadingProperties, refetch: refetchProperties } = useQuery({
     queryKey: ['properties'],
     queryFn: fetchProperties,
   });
-  const { data: projects = [], isFetching: loadingProjects, refetch: refetchProjects } = useQuery({
+  const { data: projects = [], error: projectsError, isFetching: loadingProjects, refetch: refetchProjects } = useQuery({
     queryKey: ['projects'],
     queryFn: fetchProjects,
   });
   const visibleProperties = properties.filter((p) => !hiddenIds.has(p.id));
   const recommended = visibleProperties.filter((p) => p.fitReason || p.nearby?.length);
-  const popularAreas = useMemo(() => getPopularAreas(visibleProperties), [visibleProperties]);
+  const popularAreas = getPopularAreas(visibleProperties);
   const [homeQuery, setHomeQuery] = useState('');
 
   const submitHomeQuery = () => {
@@ -80,6 +82,14 @@ export default function HomeScreen() {
           <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Cari rumah yang pas untukmu</Text>
         </View>
       </View>
+
+      {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
+      {propertiesError || projectsError ? (
+        <DataStatus
+          message="Katalog belum dapat dimuat. Periksa koneksi lalu coba lagi."
+          onRetry={() => { void refetchProperties(); void refetchProjects(); }}
+        />
+      ) : null}
 
       <View style={styles.intentRow}>
         {INTENTS.map((item) => (

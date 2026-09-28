@@ -1,60 +1,22 @@
-# Huni Supabase backend
+# Backend Supabase Huni
 
-## Setup
+## Terapkan skema
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Apply the schema: `supabase link --project-ref <ref>` then
-   `supabase db push` (or paste `migrations/0001_init.sql` into the SQL
-   editor).
-3. Seed sample data: run `seed/seed.sql` the same way — optional, but the
-   app has nothing to show without it (or a properly listed catalogue) once
-   it's pointed at Supabase.
-4. In Authentication settings, enable the **Google** provider and **Phone**
-   (SMS OTP, needs an SMS provider like Twilio/MessageBird configured under
-   Auth → Providers → Phone).
-5. Copy `.env.example` to `.env.local` in the repo root and fill in the
-   project URL and **anon** key from Project Settings → API. Never put the
-   `service_role` key in the app or in chat — it only belongs in Edge
-   Function secrets.
-6. For Android push (FCM), see the "Push notifications" section in the repo
-   root `README.md` — Axel needs to create a Firebase project and send
-   `google-services.json`.
-7. Deploy the edge functions:
-   ```bash
-   supabase functions deploy price-drop-alerts
-   supabase functions deploy shortlist-invite
-   ```
-   `price-drop-alerts` expects a DB webhook on `properties` UPDATE (or a
-   cron schedule) so it has something to react to.
+1. Hubungkan proyek dengan `supabase link --project-ref <ref>`.
+2. Terapkan semua migrasi berurutan dengan `supabase db push`. Migrasi `0004` menutup bypass undangan shortlist; `0005` membatasi status permintaan hapus akun dan mengisi preferensi notifikasi; `0006` membuat event harga otomatis dan klaim pemrosesan; `0007` menambah nomor kontak pengiklan dan laporan listing.
+3. Opsional: jalankan `seed/seed.sql` untuk katalog contoh. Aplikasi dengan Supabase aktif tidak memakai katalog mock jika query gagal.
+4. Atur Google OAuth, SMS OTP, URL redirect, dan anon key aplikasi sesuai `.env.example`. Kunci service role hanya boleh ada di backend.
 
-## What's here
+## Fungsi admin
 
-- `migrations/0001_init.sql` — full schema: property taxonomy, advertisers,
-  properties, projects/units, the user decision workspace (saved
-  properties/searches, KPR scenarios, price watches, shortlists), leads,
-  and notification/push-token tables, all with row-level security.
-- `seed/seed.sql` — the same six properties and two projects the app used
-  as mock data, so a fresh project isn't empty.
-- `functions/price-drop-alerts` — records a price_change_events row and
-  pushes an Expo notification to everyone watching a listing when its price
-  drops.
-- `functions/shortlist-invite` — resolves an invite code and joins the
-  calling user to that shortlist.
+Konfigurasi `config.toml` mematikan pemeriksaan JWT gateway hanya untuk `price-drop-alerts` dan `process-account-deletions`; kedua handler menolak request tanpa header `x-huni-job-secret` yang cocok. Buat dua secret acak yang berbeda di Supabase Edge Function Secrets: `PRICE_DROP_JOB_SECRET` dan `ACCOUNT_DELETION_JOB_SECRET`. Deploy kedua fungsi setelah migrasi diterapkan. `shortlist-invite` tetap memerlukan JWT pengguna.
 
-## App-side wiring
+Jadwalkan POST ke `/functions/v1/price-drop-alerts` setiap beberapa menit dan ke `/functions/v1/process-account-deletions` setidaknya sekali sehari melalui Supabase Cron/`pg_net` atau scheduler internal. Simpan URL dan dua secret pemanggil di Vault; jangan menaruhnya di SQL yang dikomit, aplikasi, atau chat. Setiap job harus mengirim `x-huni-job-secret` yang sesuai. Periksa respons non-200 dan alert pada kegagalan. Lihat [panduan Supabase Cron](https://supabase.com/docs/guides/functions/schedule-functions) dan [konfigurasi Edge Function](https://supabase.com/docs/guides/functions/function-configuration).
 
-`src/lib/supabase.ts` creates the client from `EXPO_PUBLIC_SUPABASE_URL` /
-`EXPO_PUBLIC_SUPABASE_ANON_KEY`. `src/data/repository.ts` exposes
-`fetchProperties`/`fetchPropertyById`/`fetchProjects`/`fetchProjectById`,
-which query Supabase when configured and fall back to the bundled mock data
-otherwise — so the app keeps working before the project exists. Home,
-Search, and the property/project detail screens are wired to these through
-React Query. `src/auth/AuthProvider.tsx` handles Google OAuth (via
-`expo-web-browser`) and phone OTP.
+Trigger `record_price_drop` membuat satu event untuk setiap update harga properti aktif yang turun. Function mengklaim event melalui RPC, lalu memeriksa watch, preferensi, dan token sebelum mengirim push. Klaim kadaluarsa setelah 15 menit agar kegagalan dapat dicoba ulang. Push eksternal tidak menyediakan transaksi atomik bersama Postgres; crash setelah Expo menerima push tetapi sebelum event ditandai terkirim masih dapat menyebabkan duplikat. Pantau `failedEventIds` pada respons job.
 
-`src/data/sync.ts` mirrors the decision workspace — saved properties, price
-watches, saved searches, KPR scenarios, and shortlists — to Supabase for
-signed-in users; `src/store/useAppStore.ts` calls it from each mutator and
-hydrates from Supabase on sign-in. Guests (no session) stay fully local, as
-before. Compare is intentionally local-only (a transient picker, not a
-saved table).
+Worker hapus akun memproses maksimal 100 request pending per eksekusi dan memakai `auth.admin.deleteUser`; foreign key menghapus data workspace terkait. Audit minimal disimpan di `account_deletion_audit` tanpa user ID. Pantau `failedRequestIds` dan pastikan jadwal aktif sebelum mengiklankan tenggat pemrosesan di aplikasi atau halaman web.
+
+## Verifikasi
+
+`npm run test:db` menjalankan PostgreSQL sementara lewat Docker, menerapkan semua migrasi, dan menguji RLS shortlist, status permintaan penghapusan, serta event penurunan harga. Ini tidak membuktikan konfigurasi proyek live, pengiriman push, OAuth, atau jadwal cron. Uji semuanya lagi pada staging sebelum rilis.

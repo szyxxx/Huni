@@ -20,7 +20,6 @@ export default function SignInScreen() {
 
   const notify = (title: string, message: string) => {
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       alert(`${title}\n\n${message}`);
     } else {
       Alert.alert(title, message);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -12,7 +12,7 @@ type Props = {
 /** A calm pulsing placeholder block, for loading states instead of bare "Memuat…" text. */
 export function Skeleton({ width = '100%', height, radius = 12, style }: Props) {
   const theme = useTheme();
-  const opacity = useRef(new Animated.Value(0.5)).current;
+  const [opacity] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
     const loop = Animated.loop(

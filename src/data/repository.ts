@@ -26,7 +26,7 @@ type PropertyRow = {
   lat: number | null;
   lng: number | null;
   last_confirmed_at: string;
-  advertisers: { name: string; is_agency: boolean; verification: Property['verification'] } | null;
+  advertisers: { name: string; is_agency: boolean; verification: Property['verification']; contact_phone: string | null } | null;
   property_nearby_places: { label: string; minutes: number }[] | null;
 };
 
@@ -51,7 +51,7 @@ function mapPropertyRow(row: PropertyRow): Property {
     images: row.images,
     verification: row.advertisers?.verification ?? 'unverified',
     promotion: row.promotion,
-    advertiser: { name: row.advertisers?.name ?? 'Tidak diketahui', isAgency: row.advertisers?.is_agency ?? false },
+    advertiser: { name: row.advertisers?.name ?? 'Tidak diketahui', isAgency: row.advertisers?.is_agency ?? false, contactPhone: row.advertisers?.contact_phone ?? undefined },
     lat: row.lat ?? 0,
     lng: row.lng ?? 0,
     facilities: row.facilities,
@@ -65,7 +65,7 @@ const PROPERTY_SELECT = `
   id, title, intent, type, price, price_unit, estimated_installment, previous_price,
   area, city, bedrooms, bathrooms, land_area, building_area, images, furnished, video_url, promotion,
   facilities, description, lat, lng, last_confirmed_at,
-  advertisers ( name, is_agency, verification ),
+  advertisers ( name, is_agency, verification, contact_phone ),
   property_nearby_places ( label, minutes )
 `;
 
@@ -77,14 +77,16 @@ export async function fetchProperties(): Promise<Property[]> {
     .select(PROPERTY_SELECT)
     .eq('status', 'active')
     .order('last_confirmed_at', { ascending: false });
-  if (error || !data) return mockProperties;
+  if (error) throw error;
+  if (!data) throw new Error('Katalog properti tidak tersedia.');
   return (data as unknown as PropertyRow[]).map(mapPropertyRow);
 }
 
 export async function fetchPropertyById(id: string): Promise<Property | undefined> {
   if (!isSupabaseConfigured || !supabase) return getMockPropertyById(id);
   const { data, error } = await supabase.from('properties').select(PROPERTY_SELECT).eq('id', id).maybeSingle();
-  if (error || !data) return getMockPropertyById(id);
+  if (error) throw error;
+  if (!data) return undefined;
   return mapPropertyRow(data as unknown as PropertyRow);
 }
 
@@ -100,7 +102,7 @@ type ProjectRow = {
   promo: string | null;
   lat: number | null;
   lng: number | null;
-  advertisers: { name: string; verification: string } | null;
+  advertisers: { name: string; verification: string; contact_phone: string | null } | null;
   project_units: { id: string; name: string; cluster: string | null; building_area: number; bedrooms: number; bathrooms: number; price_from: number; available: number }[];
   project_nearby_places: { label: string; minutes: number }[];
 };
@@ -111,6 +113,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
     name: row.name,
     developer: row.advertisers?.name ?? 'Developer tidak diketahui',
     developerVerified: row.advertisers?.verification === 'official_developer',
+    contactPhone: row.advertisers?.contact_phone ?? undefined,
     city: row.city,
     area: row.area,
     images: row.images,
@@ -136,7 +139,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
 
 const PROJECT_SELECT = `
   id, name, city, area, images, progress_percent, progress_label, facilities, promo, lat, lng,
-  advertisers ( name, verification ),
+  advertisers ( name, verification, contact_phone ),
   project_units ( id, name, cluster, building_area, bedrooms, bathrooms, price_from, available ),
   project_nearby_places ( label, minutes )
 `;
@@ -144,13 +147,15 @@ const PROJECT_SELECT = `
 export async function fetchProjects(): Promise<DevelopmentProject[]> {
   if (!isSupabaseConfigured || !supabase) return mockProjects;
   const { data, error } = await supabase.from('projects').select(PROJECT_SELECT);
-  if (error || !data) return mockProjects;
+  if (error) throw error;
+  if (!data) throw new Error('Katalog proyek tidak tersedia.');
   return (data as unknown as ProjectRow[]).map(mapProjectRow);
 }
 
 export async function fetchProjectById(id: string): Promise<DevelopmentProject | undefined> {
   if (!isSupabaseConfigured || !supabase) return getMockProjectById(id);
   const { data, error } = await supabase.from('projects').select(PROJECT_SELECT).eq('id', id).maybeSingle();
-  if (error || !data) return getMockProjectById(id);
+  if (error) throw error;
+  if (!data) return undefined;
   return mapProjectRow(data as unknown as ProjectRow);
 }

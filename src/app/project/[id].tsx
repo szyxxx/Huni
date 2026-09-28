@@ -31,7 +31,7 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { data: project, isLoading } = useQuery({
+  const { data: project, isLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => fetchProjectById(id),
     enabled: Boolean(id),
@@ -50,7 +50,12 @@ export default function ProjectDetailScreen() {
     }
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Proyek tidak ditemukan.</Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+          {projectError ? 'Proyek belum dapat dimuat.' : 'Proyek tidak ditemukan.'}
+        </Text>
+        {projectError ? <Pressable onPress={() => { void refetchProject(); }} style={{ marginTop: 12 }}>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Coba lagi</Text>
+        </Pressable> : null}
       </View>
     );
   }
@@ -58,9 +63,10 @@ export default function ProjectDetailScreen() {
   const unitClusters = project ? groupByCluster(project.units) : [];
 
   const requestBrochure = () => {
+    if (!project.contactPhone) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const text = encodeURIComponent(`Halo, saya minta brosur dan info unit untuk proyek "${project.name}" di Huni.`);
-    Linking.openURL(`https://wa.me/6281200000000?text=${text}`).catch(() => {});
+    Linking.openURL(`https://wa.me/${project.contactPhone}?text=${text}`).catch(() => {});
   };
 
   return (
@@ -91,7 +97,7 @@ export default function ProjectDetailScreen() {
           <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
             <Text
               style={{ textDecorationLine: 'underline', color: theme.colors.brandInk }}
-              onPress={() => router.push(`/developer/${encodeURIComponent(project.developer)}`)}
+              onPress={() => router.push({ pathname: '/developer/[name]', params: { name: project.developer } })}
             >
               {project.developer}
             </Text>
@@ -166,8 +172,10 @@ export default function ProjectDetailScreen() {
             {formatIDR(Math.min(...project.units.map((u) => u.priceFrom)))}
           </Text>
         </View>
-        <Pressable onPress={requestBrochure} style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Minta brosur</Text>
+        <Pressable disabled={!project.contactPhone} onPress={requestBrochure} style={[styles.contactBtn, { backgroundColor: project.contactPhone ? theme.colors.inkPrimary : theme.colors.inkTertiary }]}>
+          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
+            {project.contactPhone ? 'Minta brosur' : 'Kontak belum tersedia'}
+          </Text>
         </Pressable>
       </GlassSurface>
     </View>

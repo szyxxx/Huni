@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -40,7 +40,11 @@ export default function ProfileScreen() {
               : 'Menjelajah sebagai tamu — data tersimpan di perangkat ini'}
         </Text>
         {user ? (
-          <Pressable onPress={signOut} style={[styles.loginBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
+          <Pressable onPress={() => { void signOut().catch(() => {
+            const message = 'Sesi lokal sudah dibersihkan, tetapi keluar dari server gagal. Coba lagi saat terhubung.';
+            if (Platform.OS === 'web') alert(message);
+            else Alert.alert('Keluar belum selesai', message);
+          }); }} style={[styles.loginBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
             <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Keluar</Text>
           </Pressable>
         ) : (

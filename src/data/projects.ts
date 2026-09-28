@@ -16,6 +16,7 @@ export type DevelopmentProject = {
   name: string;
   developer: string;
   developerVerified: boolean;
+  contactPhone?: string;
   city: string;
   area: string;
   images: string[];

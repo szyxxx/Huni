@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,34 +8,63 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
 import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../auth/AuthProvider';
+import { supabase } from '../../lib/supabase';
+import { pullUserData } from '../../data/sync';
 
-/**
- * Collaborative shortlist (PRD §7.4): a private invite link a partner/family
- * can open to see and co-decide on the same saved set. Deep link resolution
- * (huni://shortlist/<id>?invite=<code>) needs the auth/backend decision before
- * a recipient can actually join from a fresh install — the link is real, the
- * join flow is stubbed until then.
- */
 export default function ShortlistScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, invite } = useLocalSearchParams<{ id: string; invite?: string }>();
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const shortlist = useAppStore((s) => s.shortlists.find((sl) => sl.id === id));
+  const hydrateFromRemote = useAppStore((s) => s.hydrateFromRemote);
   const removeFromShortlist = useAppStore((s) => s.removeFromShortlist);
   const deleteShortlist = useAppStore((s) => s.deleteShortlist);
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const { user } = useAuth();
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    if (!invite || !user || !supabase || shortlist) return;
+    let active = true;
+    void (async () => {
+      const { data, error } = await supabase.functions.invoke('shortlist-invite', { body: { inviteCode: invite } });
+      if (error || data?.shortlistId !== id) throw error ?? new Error('Tautan undangan tidak cocok.');
+      const remote = await pullUserData(user.id);
+      if (active && useAppStore.getState().syncUserId === user.id && remote) {
+        hydrateFromRemote(remote);
+        router.replace({ pathname: '/shortlist/[id]', params: { id } });
+      }
+    })().catch((error) => {
+      if (active) setJoinError(error instanceof Error ? error.message : 'Gagal membuka undangan.');
+    });
+    return () => { active = false; };
+  }, [id, invite, user, shortlist, hydrateFromRemote, router, retry]);
 
   if (!shortlist) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Shortlist tidak ditemukan.</Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+          {joinError ?? (invite && user ? 'Membuka undangan…' : invite ? 'Masuk untuk membuka undangan shortlist.' : 'Shortlist tidak ditemukan.')}
+        </Text>
+        {invite && !user ? (
+          <Pressable onPress={() => router.push('/sign-in')} style={{ marginTop: 16 }}>
+            <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Masuk</Text>
+          </Pressable>
+        ) : null}
+        {joinError ? (
+          <Pressable onPress={() => { setJoinError(null); setRetry((value) => value + 1); }} style={{ marginTop: 16 }}>
+            <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Coba lagi</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }
 
   const items = shortlist.propertyIds.map((pid) => properties.find((p) => p.id === pid)).filter(Boolean) as typeof properties;
-  const inviteLink = `https://huni.id/shortlist/${shortlist.id}?invite=${shortlist.inviteCode}`;
+  const inviteLink = `huni://shortlist/${shortlist.id}?invite=${shortlist.inviteCode}`;
 
   const share = async () => {
     try {
@@ -51,7 +80,6 @@ export default function ShortlistScreen() {
   const confirmDelete = () => {
     const msg = 'Hapus shortlist ini? Properti di dalamnya tidak akan terhapus dari daftar tersimpan.';
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       if (confirm(msg)) {
         deleteShortlist(shortlist.id);
         router.back();
@@ -73,9 +101,11 @@ export default function ShortlistScreen() {
         <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginLeft: 12, flex: 1 }]} numberOfLines={1}>
           {shortlist.name}
         </Text>
-        <Pressable onPress={confirmDelete} hitSlop={10}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.danger }]}>Hapus</Text>
-        </Pressable>
+        {(!shortlist.ownerId || shortlist.ownerId === user?.id) ? (
+          <Pressable onPress={confirmDelete} hitSlop={10}>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.danger }]}>Hapus</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <Pressable onPress={share} style={[styles.inviteBanner, { backgroundColor: theme.colors.inkPrimary, marginHorizontal: 20 }]}>

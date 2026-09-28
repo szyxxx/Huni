@@ -1,83 +1,77 @@
-// Deno Edge Function. Run on a schedule (Supabase Cron) whenever a listing's
-// price is updated: compares against the previous price, records a
-// price_change_events row for drops, and sends an Expo push notification to
-// everyone watching that property who has price_drops enabled.
-//
-// Deploy: supabase functions deploy price-drop-alerts
-// Schedule (supabase/config.toml or Dashboard): every 15 minutes, or trigger
-// it directly from a DB webhook on public.properties UPDATE.
-
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+const url = Deno.env.get('SUPABASE_URL');
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const jobSecret = Deno.env.get('PRICE_DROP_JOB_SECRET');
+const expoPushUrl = 'https://exp.host/--/api/v2/push/send';
 
-type PropertyRow = { id: string; price: number; previous_price: number | null; title: string };
+Deno.serve(async (request) => {
+  if (request.method !== 'POST' || !jobSecret || request.headers.get('x-huni-job-secret') !== jobSecret) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  if (!url || !serviceKey) return new Response('Missing service configuration', { status: 500 });
 
-Deno.serve(async (req) => {
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const supabase = createClient(url, serviceKey);
+  const { data: events, error } = await supabase
+    .from('price_change_events')
+    .select('id, property_id, from_price, to_price')
+    .is('notification_sent_at', null)
+    .order('created_at', { ascending: true })
+    .limit(100);
+  if (error) return new Response(error.message, { status: 500 });
 
-  let changed: PropertyRow[] = [];
-  try {
-    const body = await req.json();
-    if (body?.record && body.record.price < body.old_record?.price) {
-      changed = [{ ...body.record, previous_price: body.old_record.price }];
+  let processed = 0;
+  let sent = 0;
+  const failures: string[] = [];
+  for (const event of events ?? []) {
+    const { data: claimed, error: claimError } = await supabase.rpc('claim_price_change_event', { event_id: event.id });
+    if (claimError) {
+      failures.push(event.id);
+      continue;
     }
-  } catch {
-    // No webhook body — fall back to scanning for unrecorded drops.
-    const { data } = await supabase
-      .from('properties')
-      .select('id, price, previous_price, title')
-      .not('previous_price', 'is', null)
-      .filter('previous_price', 'gt', 'price');
-    changed = data ?? [];
+    if (!claimed) continue;
+
+    try {
+      const [propertyResult, watchesResult] = await Promise.all([
+        supabase.from('properties').select('title').eq('id', event.property_id).single(),
+        supabase.from('price_watches').select('user_id').eq('property_id', event.property_id),
+      ]);
+      if (propertyResult.error) throw propertyResult.error;
+      if (watchesResult.error) throw watchesResult.error;
+      const userIds = (watchesResult.data ?? []).map((row) => row.user_id);
+      if (userIds.length) {
+        const { data: prefs, error: prefsError } = await supabase
+          .from('notification_prefs').select('user_id').in('user_id', userIds).eq('price_drops', true);
+        if (prefsError) throw prefsError;
+        const eligibleIds = (prefs ?? []).map((row) => row.user_id);
+        if (eligibleIds.length) {
+          const { data: tokens, error: tokensError } = await supabase
+            .from('push_tokens').select('expo_push_token').in('user_id', eligibleIds);
+          if (tokensError) throw tokensError;
+          if (tokens?.length) {
+            const response = await fetch(expoPushUrl, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(tokens.map((token) => ({
+                to: token.expo_push_token,
+                title: 'Harga turun',
+                body: `${propertyResult.data.title} sekarang lebih murah`,
+                data: { propertyId: event.property_id, type: 'price_drop' },
+              }))),
+            });
+            if (!response.ok) throw new Error(`Expo push returned ${response.status}`);
+            sent += tokens.length;
+          }
+        }
+      }
+      const { error: markError } = await supabase.from('price_change_events')
+        .update({ notification_sent_at: new Date().toISOString() }).eq('id', event.id);
+      if (markError) throw markError;
+      processed++;
+    } catch {
+      failures.push(event.id);
+    }
   }
 
-  let notified = 0;
-  for (const property of changed) {
-    await supabase.from('price_change_events').insert({
-      property_id: property.id,
-      from_price: property.previous_price,
-      to_price: property.price,
-    });
-
-    const { data: watchers } = await supabase
-      .from('price_watches')
-      .select('user_id')
-      .eq('property_id', property.id);
-    if (!watchers?.length) continue;
-
-    const userIds = watchers.map((w) => w.user_id);
-    const { data: prefs } = await supabase
-      .from('notification_prefs')
-      .select('user_id')
-      .in('user_id', userIds)
-      .eq('price_drops', true);
-    const eligibleIds = new Set((prefs ?? []).map((p) => p.user_id));
-
-    const { data: tokens } = await supabase
-      .from('push_tokens')
-      .select('expo_push_token')
-      .in('user_id', [...eligibleIds]);
-    if (!tokens?.length) continue;
-
-    const messages = tokens.map((t) => ({
-      to: t.expo_push_token,
-      title: 'Harga turun',
-      body: `${property.title} sekarang lebih murah`,
-      data: { propertyId: property.id, type: 'price_drop' },
-    }));
-
-    await fetch(EXPO_PUSH_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(messages),
-    });
-    notified += messages.length;
-  }
-
-  return new Response(JSON.stringify({ propertiesProcessed: changed.length, notificationsSent: notified }), {
-    headers: { 'content-type': 'application/json' },
-  });
+  return Response.json({ processed, sent, failedEventIds: failures }, { status: failures.length ? 500 : 200 });
 });

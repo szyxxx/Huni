@@ -14,13 +14,13 @@ import { useAuth } from '../auth/AuthProvider';
 // statically imported) so this file evaluates fine in Expo Go either way.
 const notificationsUnavailable = Platform.OS === 'web' || (Platform.OS === 'android' && isExpoGo);
 
-const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
-  { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
-  { key: 'priceDrops', label: 'Penurunan harga', hint: 'Saat properti yang kamu simpan turun harga' },
-  { key: 'listingUpdates', label: 'Pembaruan status', hint: 'Perubahan ketersediaan pada properti tersimpan' },
-  { key: 'projectPromotions', label: 'Promosi proyek', hint: 'Penawaran dari proyek/developer yang kamu ikuti' },
-  { key: 'shortlistActivity', label: 'Aktivitas shortlist', hint: 'Saat anggota shortlist menambah/menghapus properti' },
-  { key: 'leadFollowUp', label: 'Tindak lanjut pengiklan', hint: 'Hanya jika kamu telah menghubungi pengiklan' },
+const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string; available: boolean }[] = [
+  { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Belum tersedia', available: false },
+  { key: 'priceDrops', label: 'Penurunan harga', hint: 'Saat properti yang kamu pantau turun harga', available: true },
+  { key: 'listingUpdates', label: 'Pembaruan status', hint: 'Belum tersedia', available: false },
+  { key: 'projectPromotions', label: 'Promosi proyek', hint: 'Belum tersedia', available: false },
+  { key: 'shortlistActivity', label: 'Aktivitas shortlist', hint: 'Belum tersedia', available: false },
+  { key: 'leadFollowUp', label: 'Tindak lanjut pengiklan', hint: 'Belum tersedia', available: false },
 ];
 
 export default function NotificationsSettingsScreen() {
@@ -45,7 +45,7 @@ export default function NotificationsSettingsScreen() {
     })();
   }, []);
 
-  const anyEnabled = Object.values(prefs).some(Boolean);
+  const anyEnabled = prefs.priceDrops;
 
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
     setPref(key, value);
@@ -95,7 +95,8 @@ export default function NotificationsSettingsScreen() {
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>{item.hint}</Text>
             </View>
             <Switch
-              value={prefs[item.key]}
+              value={item.available && prefs[item.key]}
+              disabled={!item.available}
               onValueChange={(v) => handleToggle(item.key, v)}
               trackColor={{ false: theme.colors.border, true: theme.colors.brand }}
             />

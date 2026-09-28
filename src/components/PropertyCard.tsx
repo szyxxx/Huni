@@ -26,7 +26,6 @@ export function PropertyCard({ property, onPress }: Props) {
   const hideProperty = () => {
     const msg = `Sembunyikan "${property.title}"? Properti ini tidak akan muncul lagi di hasil pencarian. Kamu bisa menampilkannya lagi dari tab Tersimpan.`;
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
       if (confirm(msg)) toggleHidden(property.id);
       return;
     }

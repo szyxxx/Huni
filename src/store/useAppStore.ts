@@ -1,9 +1,11 @@
 import { create } from 'zustand';
+import * as Crypto from 'expo-crypto';
 import { properties, type PropertyType } from '../data/properties';
+import type { GuestWorkspace } from './guestWorkspace';
 import {
   deleteShortlistRemote,
-  pullUserData,
   pushKprScenario,
+  pushNotificationPrefs,
   pushPriceWatch,
   pushSavedProperty,
   pushSavedSearch,
@@ -14,8 +16,8 @@ import {
   type RemoteUserData,
 } from '../data/sync';
 
-function inviteCodeFor(seed: string) {
-  return `${seed}-${Math.random().toString(36).slice(2, 8)}`;
+function inviteCodeFor() {
+  return Crypto.randomUUID().replaceAll('-', '');
 }
 
 export type SearchIntent = 'buy' | 'rent' | 'new-projects';
@@ -74,6 +76,7 @@ export type Shortlist = {
   name: string;
   propertyIds: string[];
   inviteCode: string;
+  ownerId?: string;
   createdAt: string;
 };
 
@@ -91,6 +94,24 @@ export type NotificationPrefs = {
   projectPromotions: boolean;
   shortlistActivity: boolean;
   leadFollowUp: boolean;
+};
+
+function syncWrite(userId: string, action: Promise<void>) {
+  useAppStore.getState().setSyncError(null);
+  void action.catch((error) => {
+    if (useAppStore.getState().syncUserId === userId) {
+      useAppStore.getState().setSyncError(error instanceof Error ? error.message : 'Data gagal disinkronkan.');
+    }
+  });
+}
+
+const defaultNotificationPrefs: NotificationPrefs = {
+  savedSearchMatch: true,
+  priceDrops: true,
+  listingUpdates: true,
+  projectPromotions: false,
+  shortlistActivity: true,
+  leadFollowUp: true,
 };
 
 type AppState = {
@@ -142,8 +163,11 @@ type AppState = {
   priceAlerts: PriceAlert[];
 
   syncUserId: string | null;
+  syncError: string | null;
   setSyncUserId: (userId: string | null) => void;
+  setSyncError: (message: string | null) => void;
   hydrateFromRemote: (data: RemoteUserData) => void;
+  hydrateGuest: (data: GuestWorkspace) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -159,7 +183,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       else next.add(id);
       return { savedIds: next };
     });
-    if (get().syncUserId) pushSavedProperty(get().syncUserId!, id, nowSaved);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushSavedProperty(userId, id, nowSaved));
   },
   isSaved: (id) => get().savedIds.has(id),
 
@@ -194,24 +219,28 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   savedSearches: [],
   addSavedSearch: (search) => {
-    const entry: SavedSearch = { ...search, id: `ss_${Date.now()}`, createdAt: new Date().toISOString() };
+    const entry: SavedSearch = { ...search, id: Crypto.randomUUID(), createdAt: new Date().toISOString() };
     set((state) => ({ savedSearches: [entry, ...state.savedSearches] }));
-    if (get().syncUserId) pushSavedSearch(get().syncUserId!, entry);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushSavedSearch(userId, entry));
   },
   removeSavedSearch: (id) => {
     set((state) => ({ savedSearches: state.savedSearches.filter((s) => s.id !== id) }));
-    if (get().syncUserId) removeSavedSearchRemote(id);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, removeSavedSearchRemote(id));
   },
 
   kprScenarios: [],
   addKprScenario: (scenario) => {
-    const entry: KprScenario = { ...scenario, id: `kpr_${Date.now()}`, createdAt: new Date().toISOString() };
+    const entry: KprScenario = { ...scenario, id: Crypto.randomUUID(), createdAt: new Date().toISOString() };
     set((state) => ({ kprScenarios: [entry, ...state.kprScenarios] }));
-    if (get().syncUserId) pushKprScenario(get().syncUserId!, entry);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushKprScenario(userId, entry));
   },
   removeKprScenario: (id) => {
     set((state) => ({ kprScenarios: state.kprScenarios.filter((s) => s.id !== id) }));
-    if (get().syncUserId) removeKprScenarioRemote(id);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, removeKprScenarioRemote(id));
   },
 
   compareIds: [],
@@ -225,28 +254,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
   clearCompare: () => set({ compareIds: [] }),
 
-  notificationPrefs: {
-    savedSearchMatch: true,
-    priceDrops: true,
-    listingUpdates: true,
-    projectPromotions: false,
-    shortlistActivity: true,
-    leadFollowUp: true,
+  notificationPrefs: defaultNotificationPrefs,
+  setNotificationPref: (key, value) => {
+    set((state) => ({ notificationPrefs: { ...state.notificationPrefs, [key]: value } }));
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushNotificationPrefs(userId, get().notificationPrefs));
   },
-  setNotificationPref: (key, value) =>
-    set((state) => ({ notificationPrefs: { ...state.notificationPrefs, [key]: value } })),
 
   shortlists: [],
   createShortlist: (name) => {
     const shortlist: Shortlist = {
-      id: `sl_${Date.now()}`,
+      id: Crypto.randomUUID(),
       name,
       propertyIds: [],
-      inviteCode: inviteCodeFor('huni'),
+      inviteCode: inviteCodeFor(),
+      ownerId: get().syncUserId ?? undefined,
       createdAt: new Date().toISOString(),
     };
     set((state) => ({ shortlists: [shortlist, ...state.shortlists] }));
-    if (get().syncUserId) pushShortlist(get().syncUserId!, shortlist);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushShortlist(userId, shortlist));
     return shortlist;
   },
   addToShortlist: (shortlistId, propertyId) => {
@@ -257,7 +284,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           : sl
       ),
     }));
-    if (get().syncUserId) pushShortlistProperty(shortlistId, propertyId, get().syncUserId!, true);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushShortlistProperty(shortlistId, propertyId, userId, true));
   },
   removeFromShortlist: (shortlistId, propertyId) => {
     set((state) => ({
@@ -265,11 +293,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         sl.id === shortlistId ? { ...sl, propertyIds: sl.propertyIds.filter((id) => id !== propertyId) } : sl
       ),
     }));
-    if (get().syncUserId) pushShortlistProperty(shortlistId, propertyId, get().syncUserId!, false);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushShortlistProperty(shortlistId, propertyId, userId, false));
   },
   deleteShortlist: (id) => {
     set((state) => ({ shortlists: state.shortlists.filter((sl) => sl.id !== id) }));
-    if (get().syncUserId) deleteShortlistRemote(id);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, deleteShortlistRemote(id));
   },
 
   watchedPriceIds: new Set(),
@@ -281,7 +311,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       else next.add(id);
       return { watchedPriceIds: next };
     });
-    if (get().syncUserId) pushPriceWatch(get().syncUserId!, id, nowWatching);
+    const userId = get().syncUserId;
+    if (userId) syncWrite(userId, pushPriceWatch(userId, id, nowWatching));
   },
   isWatchingPrice: (id) => get().watchedPriceIds.has(id),
   priceAlerts: properties
@@ -294,7 +325,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
 
   syncUserId: null,
-  setSyncUserId: (userId) => set({ syncUserId: userId }),
+  syncError: null,
+  setSyncUserId: (userId) => {
+    if (get().syncUserId === userId) return;
+    set({
+      syncUserId: userId,
+      syncError: null,
+      intent: 'buy',
+      savedIds: new Set(),
+      watchedPriceIds: new Set(),
+      savedSearches: [],
+      kprScenarios: [],
+      shortlists: [],
+      hiddenIds: new Set(),
+      recentlyViewed: [],
+      searchHistory: [],
+      compareIds: [],
+      filters: defaultFilters,
+      notificationPrefs: defaultNotificationPrefs,
+    });
+  },
+  setSyncError: (message) => set({ syncError: message }),
   hydrateFromRemote: (data) =>
     set({
       savedIds: new Set(data.savedIds),
@@ -302,5 +353,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       savedSearches: data.savedSearches,
       kprScenarios: data.kprScenarios,
       shortlists: data.shortlists,
+      notificationPrefs: data.notificationPrefs ?? defaultNotificationPrefs,
+    }),
+  hydrateGuest: (data) =>
+    set({
+      savedIds: new Set(data.savedIds),
+      watchedPriceIds: new Set(data.watchedPriceIds),
+      hiddenIds: new Set(data.hiddenIds),
+      recentlyViewed: data.recentlyViewed,
+      searchHistory: data.searchHistory,
+      savedSearches: data.savedSearches,
+      kprScenarios: data.kprScenarios,
+      shortlists: data.shortlists,
+      filters: data.filters,
+      notificationPrefs: data.notificationPrefs,
+      intent: data.intent,
     }),
 }));
