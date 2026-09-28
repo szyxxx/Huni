@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { fetchProjectById } from '../../data/repository';
@@ -65,7 +66,7 @@ export default function ProjectDetailScreen() {
           <View style={[styles.topBar, { top: insets.top + 8 }]}>
             <GlassSurface style={styles.circleBtnWrap}>
               <Pressable onPress={() => router.back()} style={styles.circleBtn}>
-                <Text style={{ fontSize: 18, color: theme.colors.inkPrimary }}>←</Text>
+                <Feather name="arrow-left" size={18} color={theme.colors.inkPrimary} />
               </Pressable>
             </GlassSurface>
           </View>

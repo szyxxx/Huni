@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../auth/AuthProvider';
 
@@ -62,7 +63,7 @@ export default function ProfileScreen() {
                 {item.hint}
               </Text>
             </View>
-            <Text style={{ color: theme.colors.inkTertiary, fontSize: 16 }}>›</Text>
+            <Feather name="chevron-right" size={18} color={theme.colors.inkTertiary} />
           </Pressable>
         ))}
       </View>

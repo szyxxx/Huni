@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { VerificationBadge } from '../../components/VerificationBadge';
@@ -104,13 +105,13 @@ export default function PropertyDetailScreen() {
           <View style={[styles.topBar, { top: insets.top + 8 }]}>
             <GlassSurface style={styles.circleBtnWrap}>
               <Pressable onPress={() => router.back()} style={styles.circleBtn}>
-                <Text style={{ fontSize: 18, color: theme.colors.inkPrimary }}>←</Text>
+                <Feather name="arrow-left" size={18} color={theme.colors.inkPrimary} />
               </Pressable>
             </GlassSurface>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <GlassSurface style={styles.circleBtnWrap}>
                 <Pressable onPress={shareProperty} style={styles.circleBtn}>
-                  <Text style={{ fontSize: 16, color: theme.colors.inkPrimary }}>⇧</Text>
+                  <Feather name="share" size={16} color={theme.colors.inkPrimary} />
                 </Pressable>
               </GlassSurface>
               <GlassSurface style={styles.circleBtnWrap}>
@@ -121,9 +122,7 @@ export default function PropertyDetailScreen() {
                   }}
                   style={styles.circleBtn}
                 >
-                  <Text style={{ fontSize: 16, color: isSaved ? theme.colors.brand : theme.colors.inkPrimary }}>
-                    {isSaved ? '♥' : '♡'}
-                  </Text>
+                  <Feather name="heart" size={16} color={isSaved ? theme.colors.brand : theme.colors.inkPrimary} />
                 </Pressable>
               </GlassSurface>
             </View>
@@ -180,9 +179,10 @@ export default function PropertyDetailScreen() {
             {property.videoUrl ? (
               <Pressable
                 onPress={watchVideo}
-                style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+                style={[styles.pillBtn, { flexDirection: 'row', alignItems: 'center', gap: 6, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
               >
-                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>▶ Video</Text>
+                <Feather name="play-circle" size={14} color={theme.colors.inkSecondary} />
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Video</Text>
               </Pressable>
             ) : null}
           </View>

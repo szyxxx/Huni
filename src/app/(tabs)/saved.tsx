@@ -3,6 +3,7 @@ import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text,
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
 import { SectionHeader } from '../../components/SectionHeader';
@@ -149,7 +150,7 @@ export default function SavedScreen() {
                       {sl.propertyIds.length} properti · bisa dibagikan
                     </Text>
                   </View>
-                  <Text style={{ color: theme.colors.inkTertiary, fontSize: 16 }}>›</Text>
+                  <Feather name="chevron-right" size={18} color={theme.colors.inkTertiary} />
                 </Pressable>
               ))}
             </View>
@@ -171,7 +172,7 @@ export default function SavedScreen() {
                       </Text>
                     </View>
                     <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8}>
-                      <Text style={{ color: theme.colors.inkTertiary, fontSize: 16 }}>✕</Text>
+                      <Feather name="x" size={16} color={theme.colors.inkTertiary} />
                     </Pressable>
                   </View>
                 ))}
@@ -219,7 +220,7 @@ export default function SavedScreen() {
                         </Text>
                       </View>
                       <Pressable onPress={() => removeKprScenario(s.id)} hitSlop={8}>
-                        <Text style={{ color: theme.colors.inkTertiary, fontSize: 16 }}>✕</Text>
+                        <Feather name="x" size={16} color={theme.colors.inkTertiary} />
                       </Pressable>
                     </View>
                   ))}

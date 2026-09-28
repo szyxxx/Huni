@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { formatPriceLine } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
@@ -67,9 +68,7 @@ export function PropertyCard({ property, onPress }: Props) {
           hitSlop={10}
           style={[styles.saveBtn, { backgroundColor: 'rgba(21,21,21,0.45)' }]}
         >
-          <Text style={{ fontSize: 16, color: isSaved ? theme.colors.brand : '#fff' }}>
-            {isSaved ? '♥' : '♡'}
-          </Text>
+          <Feather name="heart" size={15} color={isSaved ? theme.colors.brand : '#fff'} />
         </Pressable>
       </View>
       <View style={styles.body}>

@@ -1,14 +1,15 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 
-const ICONS: Record<string, string> = {
-  index: '⌂',
-  search: '⌕',
-  saved: '♡',
-  profile: '◔',
+const ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  index: 'home',
+  search: 'search',
+  saved: 'heart',
+  profile: 'user',
 };
 
 const LABELS: Record<string, string> = {
@@ -43,10 +44,8 @@ export default function TabsLayout() {
           <GlassSurface style={StyleSheet.absoluteFill} intensity={50} />
         ),
         tabBarItemStyle: { paddingTop: 10 },
-        tabBarIcon: ({ color }) => (
-          <View>
-            <Text style={{ fontSize: 18, color }}>{ICONS[route.name]}</Text>
-          </View>
+        tabBarIcon: ({ color, focused }) => (
+          <Feather name={ICONS[route.name]} size={20} color={color} style={{ opacity: focused ? 1 : 0.85 }} />
         ),
         tabBarLabel: LABELS[route.name],
       })}

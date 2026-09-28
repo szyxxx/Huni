@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { fetchPropertyById } from '../../data/repository';
 
@@ -50,7 +51,7 @@ export default function GalleryScreen() {
 
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-          <Text style={{ color: '#fff', fontSize: 18 }}>✕</Text>
+          <Feather name="x" size={18} color="#fff" />
         </Pressable>
         <Text style={[theme.type.captionStrong, { color: '#fff' }]}>
           {page + 1} / {property.images.length}

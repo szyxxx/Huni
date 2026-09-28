@@ -1,5 +1,6 @@
 import React from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,7 +29,7 @@ export default function DeveloperProfileScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={{ fontSize: 20, color: theme.colors.inkPrimary }}>←</Text>
+          <Feather name="arrow-left" size={20} color={theme.colors.inkPrimary} />
         </Pressable>
         <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginLeft: 12 }]} numberOfLines={1}>
           {developerName}

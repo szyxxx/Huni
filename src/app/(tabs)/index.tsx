@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
@@ -87,7 +88,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-        <Text style={{ fontSize: 16, color: theme.colors.inkTertiary }}>⌕</Text>
+        <Feather name="search" size={18} color={theme.colors.inkTertiary} />
         <TextInput
           value={homeQuery}
           onChangeText={setHomeQuery}
@@ -110,7 +111,7 @@ export default function HomeScreen() {
             Cari berdasarkan cicilan bulanan yang nyaman untukmu
           </Text>
         </View>
-        <Text style={{ color: theme.colors.brand, fontSize: 22 }}>→</Text>
+        <Feather name="arrow-right" size={20} color={theme.colors.brand} />
       </Pressable>
 
       <View style={{ marginTop: 28 }}>

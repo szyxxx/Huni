@@ -3,6 +3,7 @@ import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text,
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { PropertyCard } from '../../components/PropertyCard';
@@ -142,7 +143,7 @@ export default function SearchScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 8 }}>
       <View style={styles.searchRow}>
         <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Text style={{ color: theme.colors.inkTertiary, fontSize: 16 }}>⌕</Text>
+          <Feather name="search" size={18} color={theme.colors.inkTertiary} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -158,13 +159,13 @@ export default function SearchScreen() {
           onPress={() => router.push('/filters')}
           style={[styles.toggleBtn, { backgroundColor: activeFilterCount ? theme.colors.brand : theme.colors.inkPrimary }]}
         >
-          <Text style={{ color: activeFilterCount ? theme.colors.onBrand : theme.colors.surface, fontSize: 16 }}>▤</Text>
+          <Feather name="sliders" size={18} color={activeFilterCount ? theme.colors.onBrand : theme.colors.surface} />
         </Pressable>
         <Pressable
           onPress={() => setView(view === 'list' ? 'map' : 'list')}
           style={[styles.toggleBtn, { backgroundColor: theme.colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
         >
-          <Text style={{ color: theme.colors.inkPrimary, fontSize: 16 }}>{view === 'list' ? '⊞' : '☰'}</Text>
+          <Feather name={view === 'list' ? 'map' : 'grid'} size={18} color={theme.colors.inkPrimary} />
         </Pressable>
       </View>
 
