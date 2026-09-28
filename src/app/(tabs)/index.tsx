@@ -12,6 +12,15 @@ import { getPopularAreas } from '../../data/properties';
 import { fetchProperties, fetchProjects } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 import { useAppStore, SearchIntent } from '../../store/useAppStore';
+import { useAuth } from '../../auth/AuthProvider';
+
+function timeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'Selamat pagi';
+  if (hour < 15) return 'Selamat siang';
+  if (hour < 19) return 'Selamat sore';
+  return 'Selamat malam';
+}
 
 const INTENTS: { key: SearchIntent; label: string }[] = [
   { key: 'buy', label: 'Beli' },
@@ -26,6 +35,8 @@ export default function HomeScreen() {
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
+  const { user } = useAuth();
+  const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0];
 
   const { data: properties = [], isFetching: loadingProperties, refetch: refetchProperties } = useQuery({
     queryKey: ['properties'],
@@ -62,7 +73,9 @@ export default function HomeScreen() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Selamat datang,</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
+            {timeGreeting()}{firstName ? `, ${firstName}` : ''}
+          </Text>
           <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Cari rumah yang pas untukmu</Text>
         </View>
       </View>

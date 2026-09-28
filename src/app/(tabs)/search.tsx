@@ -10,8 +10,9 @@ import { PropertyMapView } from '../../components/PropertyMapView';
 import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 import { parseIntentQuery } from '../../lib/intentParser';
+import { getFitReasons } from '../../lib/recommendations';
 
-const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi'];
+const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi', 'Luas terbesar'];
 
 export default function SearchScreen() {
   const theme = useTheme();
@@ -21,6 +22,7 @@ export default function SearchScreen() {
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const filters = useAppStore((s) => s.filters);
+  const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addSavedSearch = useAppStore((s) => s.addSavedSearch);
   const compareIds = useAppStore((s) => s.compareIds);
   const toggleCompare = useAppStore((s) => s.toggleCompare);
@@ -103,8 +105,16 @@ export default function SearchScreen() {
     if (sort === 'Harga terendah') list = [...list].sort((a, b) => a.price - b.price);
     if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);
     if (sort === 'Terbaru') list = [...list].sort((a, b) => (a.lastConfirmed < b.lastConfirmed ? 1 : -1));
+    if (sort === 'Luas terbesar')
+      list = [...list].sort((a, b) => (b.landArea ?? b.buildingArea ?? 0) - (a.landArea ?? a.buildingArea ?? 0));
+    if (sort === 'Rekomendasi') {
+      list = [...list].sort(
+        (a, b) =>
+          getFitReasons(b, { filters, kprScenarios }).length - getFitReasons(a, { filters, kprScenarios }).length
+      );
+    }
     return list;
-  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds]);
+  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios]);
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: true });
