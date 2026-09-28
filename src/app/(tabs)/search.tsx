@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -33,7 +33,12 @@ export default function SearchScreen() {
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [removedChipKeys, setRemovedChipKeys] = useState<Set<string>>(new Set());
-  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const {
+    data: properties = [],
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
 
   useEffect(() => {
     if (params.q) {
@@ -210,6 +215,9 @@ export default function SearchScreen() {
           numColumns={2}
           columnWrapperStyle={{ gap: 14, paddingHorizontal: 20 }}
           contentContainerStyle={{ gap: 14, paddingTop: 14, paddingBottom: compareIds.length ? 210 : 140 }}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />
+          }
           renderItem={({ item }) => (
             <View style={{ width: '48%' }}>
               <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
@@ -232,11 +240,21 @@ export default function SearchScreen() {
           ListEmptyComponent={
             <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
               <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, textAlign: 'center' }]}>
-                Tidak ada hasil
+                {error ? 'Gagal memuat properti' : 'Tidak ada hasil'}
               </Text>
               <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 6 }]}>
-                Coba ubah kata kunci atau perlebar area pencarian.
+                {error
+                  ? 'Periksa koneksi internetmu, lalu tarik ke bawah untuk mencoba lagi.'
+                  : 'Coba ubah kata kunci atau perlebar area pencarian.'}
               </Text>
+              {error ? (
+                <Pressable
+                  onPress={() => refetch()}
+                  style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 16 }]}
+                >
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Coba lagi</Text>
+                </Pressable>
+              ) : null}
             </View>
           }
         />
@@ -277,6 +295,7 @@ const styles = StyleSheet.create({
   },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  retryBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16 },
   parsedChipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 6 },
   parsedChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   sortRow: { paddingHorizontal: 20, gap: 8 },

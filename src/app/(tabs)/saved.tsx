@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +26,7 @@ export default function SavedScreen() {
   const recentlyViewed = useAppStore((s) => s.recentlyViewed);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
-  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const { data: properties = [], isFetching, refetch } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const saved = properties.filter((p) => savedIds.has(p.id));
   const hidden = properties.filter((p) => hiddenIds.has(p.id));
   const getPropertyById = (id: string) => properties.find((p) => p.id === id);
@@ -60,6 +60,7 @@ export default function SavedScreen() {
         numColumns={2}
         columnWrapperStyle={{ gap: 14, paddingHorizontal: 20 }}
         contentContainerStyle={{ gap: 14, paddingBottom: 24 }}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />}
         ListHeaderComponent={<SectionHeader title="Properti tersimpan" subtitle={`${saved.length} properti`} />}
         renderItem={({ item }) => (
           <View style={{ width: '48%' }}>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,8 +27,14 @@ export default function HomeScreen() {
   const setIntent = useAppStore((s) => s.setIntent);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
 
-  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
-  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
+  const { data: properties = [], isFetching: loadingProperties, refetch: refetchProperties } = useQuery({
+    queryKey: ['properties'],
+    queryFn: fetchProperties,
+  });
+  const { data: projects = [], isFetching: loadingProjects, refetch: refetchProjects } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjects,
+  });
   const visibleProperties = properties.filter((p) => !hiddenIds.has(p.id));
   const recommended = visibleProperties.filter((p) => p.fitReason || p.nearby?.length);
   const popularAreas = useMemo(() => getPopularAreas(visibleProperties), [visibleProperties]);
@@ -43,6 +49,16 @@ export default function HomeScreen() {
       style={{ flex: 1, backgroundColor: theme.colors.canvas }}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 140 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={loadingProperties || loadingProjects}
+          onRefresh={() => {
+            refetchProperties();
+            refetchProjects();
+          }}
+          tintColor={theme.colors.inkTertiary}
+        />
+      }
     >
       <View style={styles.header}>
         <View>
