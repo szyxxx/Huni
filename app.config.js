@@ -21,6 +21,18 @@ module.exports = {
           color: '#FF7C63',
         },
       ],
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#F5F3F0',
+          dark: {
+            backgroundColor: '#0E0E0F',
+          },
+        },
+      ],
       '@maplibre/maplibre-react-native',
     ],
     ios: {
