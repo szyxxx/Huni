@@ -1,18 +1,20 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 import { supabase } from './supabase';
+import { isExpoGo } from './isExpoGo';
 
 /**
  * Gets an Expo push token (which delivers over FCM on Android, per Axel's
  * "Supabase + FCM" decision) and upserts it into `push_tokens` so the
  * price-drop-alerts edge function can reach this device. No-ops on web,
- * when not signed in, or when Supabase isn't configured — call it after
- * requesting notification permission.
+ * in Expo Go (remote push was removed from Expo Go in SDK 53), when not
+ * signed in, or when Supabase isn't configured — call it after requesting
+ * notification permission.
  */
 export async function registerPushToken(userId: string | undefined): Promise<void> {
-  if (Platform.OS === 'web' || !userId || !supabase) return;
+  if (Platform.OS === 'web' || isExpoGo || !userId || !supabase) return;
   try {
+    const Notifications = await import('expo-notifications');
     const permissions = await Notifications.getPermissionsAsync();
     if (!permissions.granted) return;
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;

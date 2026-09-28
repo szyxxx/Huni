@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore, NotificationPrefs } from '../store/useAppStore';
-import { useAuth } from '../auth/AuthProvider';
+import { isExpoGo } from '../lib/isExpoGo';
 import { registerPushToken } from '../lib/pushNotifications';
+import { useAuth } from '../auth/AuthProvider';
 
 const ITEMS: { key: keyof NotificationPrefs; label: string; hint: string }[] = [
   { key: 'savedSearchMatch', label: 'Properti baru cocok', hint: 'Saat properti baru sesuai pencarian tersimpanmu' },
@@ -27,18 +27,25 @@ export default function NotificationsSettingsScreen() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    Notifications.getPermissionsAsync()
-      .then((res) => setSystemGranted(res.granted))
-      .catch(() => setSystemGranted(null));
+    if (Platform.OS === 'web' || isExpoGo) return;
+    (async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+        const res = await Notifications.getPermissionsAsync();
+        setSystemGranted(res.granted);
+      } catch {
+        setSystemGranted(null);
+      }
+    })();
   }, []);
 
   const anyEnabled = Object.values(prefs).some(Boolean);
 
   const handleToggle = async (key: keyof NotificationPrefs, value: boolean) => {
     setPref(key, value);
-    if (!value || Platform.OS === 'web') return;
+    if (!value || Platform.OS === 'web' || isExpoGo) return;
     try {
+      const Notifications = await import('expo-notifications');
       const current = await Notifications.getPermissionsAsync();
       if (!current.granted) {
         const req = await Notifications.requestPermissionsAsync();
@@ -46,7 +53,7 @@ export default function NotificationsSettingsScreen() {
       }
       await registerPushToken(user?.id);
     } catch {
-      // permission API unavailable (e.g. simulator) — preference is still saved locally
+      // permission API unavailable (e.g. simulator, or removed from Expo Go on SDK 53+)
     }
   };
 
