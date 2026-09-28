@@ -3,11 +3,12 @@ import { Linking, Platform, ScrollView, StyleSheet, Text, View, Pressable, useWi
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
 import { VerificationBadge } from '../../components/VerificationBadge';
-import { getPropertyById, properties } from '../../data/properties';
+import { fetchPropertyById, fetchProperties } from '../../data/repository';
 import { formatIDR, formatPriceLine } from '../../lib/format';
 import { useAppStore } from '../../store/useAppStore';
 import { getFitReasons } from '../../lib/recommendations';
@@ -30,17 +31,24 @@ export default function PropertyDetailScreen() {
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
 
-  const property = getPropertyById(id);
+  const { data: property, isLoading } = useQuery({
+    queryKey: ['property', id],
+    queryFn: () => fetchPropertyById(id),
+    enabled: Boolean(id),
+  });
+  const { data: allProperties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }) : [];
   if (!property) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>Properti tidak ditemukan.</Text>
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+          {isLoading ? 'Memuat…' : 'Properti tidak ditemukan.'}
+        </Text>
       </View>
     );
   }
 
-  const similar = properties.filter((p) => p.id !== property.id && p.type === property.type).slice(0, 4);
+  const similar = allProperties.filter((p) => p.id !== property.id && p.type === property.type).slice(0, 4);
   const contactWhatsApp = () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const text = encodeURIComponent(`Halo, saya tertarik dengan "${property.title}" di Huni.`);

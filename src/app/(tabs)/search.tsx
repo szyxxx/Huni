@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
-import { properties } from '../../data/properties';
+import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 import { parseIntentQuery } from '../../lib/intentParser';
 
@@ -27,6 +28,7 @@ export default function SearchScreen() {
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [removedChipKeys, setRemovedChipKeys] = useState<Set<string>>(new Set());
+  const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
 
   useEffect(() => {
     if (params.q) setQuery(params.q);
