@@ -25,19 +25,31 @@ bottom tab bar, detail screen's top controls, and the sticky contact bar, per
 the material layering rules in the design doc. Everything else stays opaque
 for readability and performance.
 
-## What's implemented (Phase 0 foundation)
+## What's implemented (Phase 0 + Phase 1 in progress)
 
 - App shell: root stack + glass tab bar (Beranda / Cari / Tersimpan / Profil)
 - Home: intent switch (Beli/Sewa/Proyek Baru), intent search entry, KPR entry
-  banner, recommended/popular-area/new-project rails with "why this fits" rationale
-- Search: query + sort, list/map toggle (map is a placeholder pending a maps
-  provider decision), 2-column results grid, empty state
-- Property detail: full-bleed gallery, verification badge, price + estimated
-  installment, spec rail, facilities, location placeholder, advertiser
-  identity, report action, similar properties, sticky WhatsApp contact bar
-- Saved workspace: saved properties grid backed by local zustand state
-- Profile: guest state, menu scaffold for preferences/saved searches/KPR
-  scenarios/notifications/privacy/account deletion
+  banner, recommended/popular-area rails (with neighborhood "vibe" one-liners)
+  and new-project rails
+- Search: query + sort, filters sheet (type/price/beds/baths/installment/
+  verified), native map with synchronized price pins (`react-native-maps`,
+  list fallback on web) or 2-column grid, multi-select compare (2–3), empty state
+- Property detail: full-bleed gallery → fullscreen pinch/double-tap-zoom
+  viewer, verification badge, price + price-drop badge, "pantau harga" watch
+  toggle, nearby commute lines, estimated installment → KPR simulator,
+  spec rail, facilities, location, advertiser identity, report action, add to
+  shortlist, similar properties, sticky WhatsApp contact bar
+- KPR simulator: down payment/tenor/rate steppers, amortization estimate,
+  savable scenarios, required "estimate, not an offer" disclaimer
+- Compare: side-by-side spec table for selected properties
+- Shortlists: named collections with a native-share invite link for
+  partner/family collaboration
+- Saved workspace: saved properties, price-drop alerts feed, shortlists,
+  saved searches, saved KPR scenarios — all local zustand state
+- Profile: guest state, links to notifications/privacy/account deletion
+- Release scaffolding: `eas.json` build profiles, `app.json` permissions/
+  plugins for location, notifications and maps, in-app account deletion +
+  privacy policy screens (Play §17/18)
 
 All property data in `src/data/properties.ts` is local mock content standing
 in for the eventual listings API.
@@ -45,10 +57,13 @@ in for the eventual listings API.
 ## Not yet implemented (see PRD §21 phases)
 
 - Auth (Google/phone OTP), real backend, and listing/media pipeline
-- Real map provider (`react-native-maps`) with synchronized price pins
-- Filters sheet, natural-language intent parsing, KPR simulator screen
-- Saved searches/notifications, shortlists/collaboration, comparison
-- Agent/Seller Portal, Admin Console, Play-release hardening (§18–20)
+- Natural-language intent parsing/composer
+- Saved-search push notifications actually firing (preferences UI exists;
+  no push backend yet)
+- Project/developer/unit pages, onboarding flow
+- Agent/Seller Portal, Admin Console
+- Full Play-release hardening: real Maps API keys, real domain for web
+  resources, signing, Data Safety, store listing assets (§18–20)
 
 ## Development
 
