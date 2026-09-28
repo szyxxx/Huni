@@ -19,21 +19,13 @@
           "color": "#FF7C63"
         }
       ],
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY"
-        }
-      ]
+      "@maplibre/maplibre-react-native"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "id.huni.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Huni menggunakan lokasimu untuk menampilkan properti terdekat dan memperkirakan waktu tempuh. Lokasi hanya diminta saat aplikasi digunakan."
-      },
-      "config": {
-        "googleMapsApiKey": "REPLACE_WITH_GOOGLE_MAPS_IOS_API_KEY"
       }
     },
     "android": {
@@ -49,12 +41,7 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],
-      "googleServicesFile": "./google-services.json",
-      "config": {
-        "googleMaps": {
-          "apiKey": "REPLACE_WITH_GOOGLE_MAPS_ANDROID_API_KEY"
-        }
-      }
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
