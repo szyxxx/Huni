@@ -194,7 +194,7 @@ export default function PropertyDetailScreen() {
             ) : null}
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          <View style={styles.actionRow}>
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -202,20 +202,22 @@ export default function PropertyDetailScreen() {
               }}
               style={[styles.pillBtn, { borderColor: isWatchingPrice ? theme.colors.brand : theme.colors.border, backgroundColor: isWatchingPrice ? theme.colors.brandSoft : theme.colors.surface }]}
             >
+              <Feather name="bell" size={15} color={isWatchingPrice ? theme.colors.brandInk : theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: isWatchingPrice ? theme.colors.brandInk : theme.colors.inkSecondary }]}>
-                {isWatchingPrice ? '● Memantau harga' : 'Pantau perubahan harga'}
+                {isWatchingPrice ? 'Memantau harga' : 'Pantau harga'}
               </Text>
             </Pressable>
             <Pressable
               onPress={() => setShortlistPickerOpen((v) => !v)}
               style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
             >
-              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>+ Shortlist</Text>
+              <Feather name="bookmark" size={15} color={theme.colors.inkSecondary} />
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Shortlist</Text>
             </Pressable>
             {property.videoUrl ? (
               <Pressable
                 onPress={watchVideo}
-                style={[styles.pillBtn, { flexDirection: 'row', alignItems: 'center', gap: 6, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+                style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
               >
                 <Feather name="play-circle" size={14} color={theme.colors.inkSecondary} />
                 <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Video</Text>
@@ -250,23 +252,28 @@ export default function PropertyDetailScreen() {
           ) : null}
 
           {property.nearby?.length ? (
-            <View style={{ marginTop: 12, gap: 4 }}>
+            <View style={styles.nearbyGroup}>
               {property.nearby.map((n) => (
-                <Text key={n.label} style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
-                  🚗 {n.minutes} menit dari {n.label.toLowerCase()}
-                </Text>
+                <View key={n.label} style={styles.nearbyRow}>
+                  <Feather name="navigation" size={14} color={theme.colors.brandInk} />
+                  <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
+                    <Text style={{ fontWeight: '600', color: theme.colors.inkPrimary }}>{n.minutes} menit</Text> dari {n.label.toLowerCase()}
+                  </Text>
+                </View>
               ))}
             </View>
           ) : null}
 
           {property.estimatedInstallment ? (
-            <Pressable onPress={() => router.push(`/kpr?price=${property.price}`)}>
-              <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 2, textDecorationLine: 'underline' }]}>
-                Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan · simulasikan
+            <Pressable onPress={() => router.push(`/kpr?price=${property.price}`)} style={[styles.installmentLink, { backgroundColor: theme.colors.brandSoft }]}>
+              <Feather name="pie-chart" size={18} color={theme.colors.brandInk} />
+              <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, flex: 1 }]}>
+                Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan
               </Text>
+              <Feather name="chevron-right" size={18} color={theme.colors.brandInk} />
             </Pressable>
           ) : null}
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 10 }]}>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 18 }]}>
             {property.title}
           </Text>
           <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
@@ -286,28 +293,33 @@ export default function PropertyDetailScreen() {
             </View>
           ) : null}
 
-          <View style={[styles.specRow, { borderColor: theme.colors.border }]}>
-            {property.bedrooms ? <Spec label="Kamar tidur" value={`${property.bedrooms}`} /> : null}
-            {property.bathrooms ? <Spec label="Kamar mandi" value={`${property.bathrooms}`} /> : null}
-            {property.landArea ? <Spec label="Luas tanah" value={`${property.landArea} m²`} /> : null}
-            {property.buildingArea ? <Spec label="Luas bangunan" value={`${property.buildingArea} m²`} /> : null}
+          <View style={[styles.specRow, { backgroundColor: theme.colors.surface }]}>
+            {property.bedrooms ? <Spec label="Kamar tidur" value={`${property.bedrooms}`} icon="moon" /> : null}
+            {property.bathrooms ? <Spec label="Kamar mandi" value={`${property.bathrooms}`} icon="droplet" /> : null}
+            {property.landArea ? <Spec label="Luas tanah" value={`${property.landArea} m²`} icon="maximize" /> : null}
+            {property.buildingArea ? <Spec label="Luas bangunan" value={`${property.buildingArea} m²`} icon="layers" /> : null}
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Deskripsi</Text>
-          <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 8, lineHeight: 22 }]}>
-            {property.description}
-          </Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Tentang properti</Text>
+          <View style={[styles.descriptionPanel, { backgroundColor: theme.colors.surfaceRaised }]}>
+            <Text style={[styles.descriptionText, { color: theme.colors.inkPrimary }]}>
+              {property.description}
+            </Text>
+          </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Fasilitas</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Fasilitas</Text>
           <View style={styles.facilityWrap}>
             {property.facilities.map((f) => (
-              <View key={f} style={[styles.facilityChip, { backgroundColor: theme.colors.surfaceSoft }]}>
-                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{f}</Text>
+              <View key={f} style={styles.facilityItem}>
+                <View style={[styles.facilityIcon, { backgroundColor: theme.colors.surfaceSoft }]}>
+                  <Feather name={facilityIcon(f)} size={17} color={theme.colors.inkPrimary} />
+                </View>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, flex: 1 }]}>{f}</Text>
               </View>
             ))}
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Lokasi</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Lokasi</Text>
           {property.verification === 'unverified' ? (
             <View style={[styles.mapPlaceholder, { backgroundColor: theme.colors.surfaceSoft }]}>
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
@@ -378,20 +390,41 @@ export default function PropertyDetailScreen() {
   );
 }
 
-function Spec({ label, value }: { label: string; value: string }) {
+function Spec({ label, value, icon }: { label: string; value: string; icon: React.ComponentProps<typeof Feather>['name'] }) {
   const theme = useTheme();
   return (
-    <View style={{ alignItems: 'flex-start' }}>
-      <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{value}</Text>
-      <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 2 }]}>{label.toUpperCase()}</Text>
+    <View style={styles.specItem}>
+      <View style={[styles.specIcon, { backgroundColor: theme.colors.surfaceSoft }]}>
+        <Feather name={icon} size={19} color={theme.colors.inkPrimary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{value}</Text>
+        <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 2 }]}>{label.toUpperCase()}</Text>
+      </View>
     </View>
   );
+}
+
+function facilityIcon(name: string): React.ComponentProps<typeof Feather>['name'] {
+  const label = name.toLowerCase();
+  if (/parkir|carport/.test(label)) return 'truck';
+  if (/taman|bermain/.test(label)) return 'sun';
+  if (/keamanan/.test(label)) return 'shield';
+  if (/kolam/.test(label)) return 'droplet';
+  if (/wifi/.test(label)) return 'wifi';
+  if (/ac/.test(label)) return 'wind';
+  if (/gym/.test(label)) return 'activity';
+  if (/laundry/.test(label)) return 'refresh-cw';
+  if (/dapur/.test(label)) return 'coffee';
+  if (/jalan|akses/.test(label)) return 'navigation';
+  return 'check';
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   dropBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  pillBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  pillBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
   shortlistPicker: { marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 4 },
   shortlistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
   topBar: {
@@ -411,17 +444,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  content: { paddingHorizontal: 20, paddingTop: 18 },
+  content: { paddingHorizontal: 24, paddingTop: 20 },
   fitBanner: { borderRadius: 16, padding: 14, marginTop: 16 },
+  nearbyGroup: { marginTop: 14, gap: 6 },
+  nearbyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  installmentLink: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginTop: 16 },
   specRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    paddingTop: 18,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    flexWrap: 'wrap',
+    gap: 16,
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 20,
   },
-  facilityWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  facilityChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
+  specItem: { width: '47%', flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 138 },
+  specIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  descriptionPanel: { borderRadius: 20, paddingHorizontal: 20, paddingVertical: 20, marginTop: 12 },
+  descriptionText: { fontSize: 17, lineHeight: 26, fontWeight: '400' },
+  facilityWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+  facilityItem: { width: '47%', minWidth: 138, flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 44 },
+  facilityIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   mapPlaceholder: { height: 150, borderRadius: 16, marginTop: 10, alignItems: 'center', justifyContent: 'center' },
   advertiserRow: {
     flexDirection: 'row',

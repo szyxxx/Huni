@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -23,6 +23,8 @@ const LABELS: Record<string, string> = {
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const dockWidth = Math.min(width - 48, 460);
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -33,21 +35,24 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         tabBarStyle: {
           position: 'absolute',
-          left: 16,
-          right: 16,
+          start: (width - dockWidth) / 2,
+          end: undefined,
+          width: dockWidth,
           bottom: insets.bottom + (Platform.OS === 'ios' ? 6 : 8),
-          height: 68,
-          borderRadius: 26,
+          height: 72,
+          borderRadius: 28,
           borderTopWidth: 0,
           backgroundColor: 'transparent',
           ...theme.shadow.soft,
         },
         tabBarBackground: () => (
-          <GlassSurface style={[StyleSheet.absoluteFill, { borderRadius: 26 }]} intensity={60} />
+          <GlassSurface style={[StyleSheet.absoluteFill, { borderRadius: 28 }]} intensity={60} />
         ),
-        tabBarItemStyle: { paddingTop: 7, paddingBottom: 5 },
+        tabBarItemStyle: { paddingTop: 5, paddingBottom: 5 },
         tabBarIcon: ({ color, focused }) => (
-          <Feather name={ICONS[route.name]} size={20} color={color} style={{ opacity: focused ? 1 : 0.85 }} />
+          <View style={[styles.iconSeat, focused && { backgroundColor: theme.colors.inkPrimary }]}>
+            <Feather name={ICONS[route.name]} size={20} color={focused ? theme.colors.surface : color} />
+          </View>
         ),
         tabBarLabel: LABELS[route.name],
       })}
@@ -59,3 +64,7 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconSeat: { width: 38, height: 34, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+});
