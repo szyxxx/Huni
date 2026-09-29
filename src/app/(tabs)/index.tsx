@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const popularAreas = getPopularAreas(visibleProperties.filter((p) => p.intent === (intent === 'rent' ? 'rent' : 'buy')));
 
   return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.canvas }}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 140 }}
@@ -196,10 +197,13 @@ export default function HomeScreen() {
         </ScrollView>
       </View> : null}
     </ScrollView>
+    <View pointerEvents="none" style={[styles.statusBarSurface, { height: insets.top, backgroundColor: theme.colors.canvas }]} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  statusBarSurface: { position: 'absolute', top: 0, left: 0, right: 0 },
   header: {
     paddingHorizontal: 20,
     marginBottom: 16,
