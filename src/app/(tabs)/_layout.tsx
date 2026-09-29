@@ -1,10 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
+
+type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 const ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   index: 'home',
@@ -20,42 +21,65 @@ const LABELS: Record<string, string> = {
   profile: 'Profil',
 };
 
-export default function TabsLayout() {
+function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const dockWidth = Math.min(width - 48, 460);
+  const dockWidth = Math.min(width - 56, 380);
+
+  return (
+    <View pointerEvents="box-none" style={[styles.position, { bottom: insets.bottom + 8 }]}>
+      <GlassSurface
+        intensity={72}
+        style={[
+          styles.dock,
+          {
+            width: dockWidth,
+            borderColor: theme.scheme === 'dark' ? theme.colors.borderStrong : 'rgba(255,255,255,0.85)',
+            ...theme.shadow.soft,
+          },
+        ]}
+      >
+        {state.routes.map((route, index) => {
+          const active = state.index === index;
+          const options = descriptors[route.key].options;
+          const label = LABELS[route.name] ?? route.name;
+          const icon = ICONS[route.name] ?? 'circle';
+
+          const onPress = () => {
+            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            if (!active && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+          };
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+              testID={options.tabBarButtonTestID}
+              style={[styles.tab, active ? styles.activeTab : styles.inactiveTab, active && { backgroundColor: theme.colors.surfaceSoft }]}
+            >
+              <Feather name={icon} size={21} color={active ? theme.colors.inkPrimary : theme.colors.inkSecondary} />
+              {active ? <Text numberOfLines={1} style={[styles.activeLabel, { color: theme.colors.inkPrimary }]}>{label}</Text> : null}
+            </Pressable>
+          );
+        })}
+      </GlassSurface>
+    </View>
+  );
+}
+
+export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: theme.colors.inkPrimary,
-        tabBarInactiveTintColor: theme.colors.inkSecondary,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
-        tabBarStyle: {
-          position: 'absolute',
-          start: (width - dockWidth) / 2,
-          end: undefined,
-          width: dockWidth,
-          bottom: insets.bottom + (Platform.OS === 'ios' ? 6 : 8),
-          height: 72,
-          borderRadius: 28,
-          borderTopWidth: 0,
-          backgroundColor: 'transparent',
-          ...theme.shadow.soft,
-        },
-        tabBarBackground: () => (
-          <GlassSurface style={[StyleSheet.absoluteFill, { borderRadius: 28 }]} intensity={60} />
-        ),
-        tabBarItemStyle: { paddingTop: 5, paddingBottom: 5 },
-        tabBarIcon: ({ color, focused }) => (
-          <View style={[styles.iconSeat, focused && { backgroundColor: theme.colors.inkPrimary }]}>
-            <Feather name={ICONS[route.name]} size={20} color={focused ? theme.colors.surface : color} />
-          </View>
-        ),
-        tabBarLabel: LABELS[route.name],
-      })}
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: { position: 'absolute', height: 64, backgroundColor: 'transparent' },
+      }}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="search" />
@@ -66,5 +90,10 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  iconSeat: { width: 38, height: 34, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  position: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  dock: { height: 62, borderRadius: 23, flexDirection: 'row', alignItems: 'center', padding: 6 },
+  tab: { minHeight: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
+  activeTab: { flex: 1.55, gap: 8, paddingHorizontal: 12 },
+  inactiveTab: { flex: 0.8 },
+  activeLabel: { fontSize: 13, lineHeight: 18, fontWeight: '600', letterSpacing: -0.2 },
 });
