@@ -6,11 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
+import { shadow } from '../../theme/tokens';
 import { Chip } from '../../components/Chip';
 import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
 import { fetchProperties, fetchProjects } from '../../data/repository';
-import { useAppStore, type SearchIntent } from '../../store/useAppStore';
+import { useAppStore, defaultFilters, type SearchIntent } from '../../store/useAppStore';
 import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
 import { getFitReasons } from '../../lib/recommendations';
 import { formatIDR } from '../../lib/format';
@@ -29,10 +30,11 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const columns = width >= 700 ? 2 : 1;
-  const params = useLocalSearchParams<{ q?: string; restore?: string }>();
+  const params = useLocalSearchParams<{ q?: string; restore?: string; compose?: string }>();
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const filters = useAppStore((s) => s.filters);
+  const setFilters = useAppStore((s) => s.setFilters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addSavedSearch = useAppStore((s) => s.addSavedSearch);
   const compareIds = useAppStore((s) => s.compareIds);
@@ -42,6 +44,9 @@ export default function SearchScreen() {
   const addSearchHistory = useAppStore((s) => s.addSearchHistory);
   const clearSearchHistory = useAppStore((s) => s.clearSearchHistory);
   const [searchFocused, setSearchFocused] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const routeQuery = params.q ?? '';
   const routeKey = `${params.restore ?? ''}:${routeQuery}`;
   const [queryInput, setQueryInput] = useState({ routeKey, value: routeQuery });
@@ -65,6 +70,12 @@ export default function SearchScreen() {
   useEffect(() => {
     if (routeQuery) addSearchHistory(routeQuery);
   }, [routeQuery, addSearchHistory]);
+
+  useEffect(() => {
+    if (!params.compose) return;
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [params.compose]);
 
   const parsed = useMemo(() => parseIntentQuery(query), [query]);
   const activeChips = parsed.chips.filter((c) => !removedChipKeys.has(c.key));
@@ -102,7 +113,7 @@ export default function SearchScreen() {
     if (hasChip('type') && parsed.type) list = list.filter((p) => p.type === parsed.type);
     if (hasChip('bedrooms') && parsed.bedrooms) list = list.filter((p) => (p.bedrooms ?? 0) >= parsed.bedrooms!);
     if (hasChip('maxInstallment') && parsed.maxInstallment)
-      list = list.filter((p) => !p.estimatedInstallment || p.estimatedInstallment <= parsed.maxInstallment!);
+      list = list.filter((p) => (p.estimatedInstallment ?? Infinity) <= parsed.maxInstallment!);
     if (hasChip('maxPrice') && parsed.maxPrice) list = list.filter((p) => p.price <= parsed.maxPrice!);
     if (hasChip('location') && parsed.location) {
       const loc = parsed.location.toLowerCase();
@@ -121,7 +132,7 @@ export default function SearchScreen() {
     if (filters.bedrooms) list = list.filter((p) => (p.bedrooms ?? 0) >= filters.bedrooms!);
     if (filters.bathrooms) list = list.filter((p) => (p.bathrooms ?? 0) >= filters.bathrooms!);
     if (filters.maxInstallment)
-      list = list.filter((p) => !p.estimatedInstallment || p.estimatedInstallment <= filters.maxInstallment!);
+      list = list.filter((p) => (p.estimatedInstallment ?? Infinity) <= filters.maxInstallment!);
     if (filters.verifiedOnly) list = list.filter((p) => p.verification !== 'unverified');
     if (filters.furnished) list = list.filter((p) => p.furnished === true);
     if (filters.minArea) list = list.filter((p) => (p.landArea ?? p.buildingArea ?? 0) >= filters.minArea!);
@@ -150,6 +161,10 @@ export default function SearchScreen() {
         .some((value) => value.toLocaleLowerCase('id').includes(q))
     );
   }, [projects, query]);
+  const mapCities = Array.from(new Set(results.map((property) => property.city)));
+  const mapCity = selectedCity && mapCities.includes(selectedCity) ? selectedCity : mapCities[0];
+  const mapResults = results.filter((property) => property.city === mapCity);
+  const selectedMapProperty = mapResults.find((property) => property.id === selectedMapId);
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: false });
@@ -167,6 +182,7 @@ export default function SearchScreen() {
         <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <Feather name="search" size={18} color={theme.colors.inkTertiary} />
           <TextInput
+            ref={inputRef}
             value={query}
             onChangeText={setQuery}
             onFocus={() => setSearchFocused(true)}
@@ -206,10 +222,10 @@ export default function SearchScreen() {
           {suggestions.map((s) => (
             <Pressable
               key={`${s.kind}:${s.label}`}
-              onPress={() => setQuery(s.label)}
+              onPressIn={() => { setQuery(s.label); setSearchFocused(false); }}
               style={styles.historyRow}
             >
-              <Text style={{ color: theme.colors.inkTertiary, fontSize: 14 }}>📍</Text>
+              <Feather name="map-pin" size={15} color={theme.colors.inkTertiary} />
               <Text style={[theme.type.body, { color: theme.colors.inkPrimary, marginLeft: 10 }]} numberOfLines={1}>
                 {s.label}
               </Text>
@@ -232,10 +248,10 @@ export default function SearchScreen() {
           {searchHistory.map((h) => (
             <Pressable
               key={h}
-              onPress={() => setQuery(h)}
+              onPressIn={() => { setQuery(h); setSearchFocused(false); }}
               style={styles.historyRow}
             >
-              <Text style={{ color: theme.colors.inkTertiary, fontSize: 14 }}>🕘</Text>
+              <Feather name="clock" size={15} color={theme.colors.inkTertiary} />
               <Text style={[theme.type.body, { color: theme.colors.inkPrimary, marginLeft: 10 }]} numberOfLines={1}>
                 {h}
               </Text>
@@ -246,20 +262,23 @@ export default function SearchScreen() {
 
       {activeChips.length > 0 ? (
         <View style={styles.parsedChipRow}>
-          <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginRight: 4 }]}>DIPAHAMI SEBAGAI:</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginRight: 4 }]}>Pencarianmu:</Text>
           {activeChips.map((c) => (
             <Pressable
               key={c.key}
               onPress={() => setChipState({ query, removed: new Set(removedChipKeys).add(c.key) })}
+              accessibilityRole="button"
+              accessibilityLabel={`Hapus ${c.label} dari pencarian`}
               style={[styles.parsedChip, { backgroundColor: theme.colors.brandSoft }]}
             >
-              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{c.label} ✕</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{c.label}</Text>
+              <Feather name="x" size={13} color={theme.colors.brandInk} />
             </Pressable>
           ))}
         </View>
       ) : null}
 
-      {intent !== 'new-projects' ? <ScrollView
+      {intent !== 'new-projects' && view === 'list' ? <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.sortRow}
@@ -302,8 +321,38 @@ export default function SearchScreen() {
           ListEmptyComponent={<Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 48 }]}>{projectsError ? 'Proyek belum dapat dimuat. Tarik ke bawah untuk mencoba lagi.' : 'Belum ada proyek yang cocok. Coba area atau nama lain.'}</Text>}
         />
       ) : view === 'map' ? (
-        <View style={styles.mapWrap}>
-          <PropertyMapView properties={results} onSelect={(id) => router.push(`/property/${id}`)} />
+        results.length ? <View style={styles.mapSection}>
+          {mapCities.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityScroller} contentContainerStyle={styles.cityRow}>
+            {mapCities.map((city) => (
+              <Chip key={city} label={city} selected={mapCity === city} onPress={() => { setSelectedCity(city); setSelectedMapId(null); }} />
+            ))}
+          </ScrollView> : null}
+          <View style={styles.mapWrap}>
+            <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapId} />
+            {selectedMapProperty ? (
+              <View style={[styles.mapPreview, { backgroundColor: theme.colors.surface }]}>
+                <Pressable onPress={() => router.push(`/property/${selectedMapProperty.id}`)} accessibilityRole="button" accessibilityLabel={`Buka ${selectedMapProperty.title}`} style={styles.mapPreviewOpen}>
+                  <Image source={{ uri: selectedMapProperty.images[0] }} style={styles.mapPreviewImage} contentFit="cover" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(selectedMapProperty.price)}</Text>
+                    <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]} numberOfLines={1}>{selectedMapProperty.title}</Text>
+                    <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 3 }]} numberOfLines={1}>{selectedMapProperty.area}, {selectedMapProperty.city}</Text>
+                  </View>
+                  <Feather name="arrow-up-right" size={18} color={theme.colors.inkPrimary} />
+                </Pressable>
+                <Pressable onPress={() => setSelectedMapId(null)} accessibilityRole="button" accessibilityLabel="Tutup pratinjau" style={styles.previewClose}>
+                  <Feather name="x" size={15} color={theme.colors.inkSecondary} />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        </View> : <View style={styles.emptyMap}>
+          <Feather name="map-pin" size={24} color={theme.colors.inkTertiary} />
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 14 }]}>Belum ada hasil di peta</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 6, textAlign: 'center' }]}>Perlebar pencarian atau ubah filter untuk melihat area lain.</Text>
+          <Pressable onPress={() => { setQuery(''); setFilters(defaultFilters); }} style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 18 }]}>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Lihat semua properti</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -319,7 +368,13 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <View style={{ flex: 1 }}>
               <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
-              <Pressable onPress={() => toggleCompare(item.id)} style={styles.compareRow}>
+              <Pressable
+                onPress={() => toggleCompare(item.id)}
+                style={styles.compareRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: compareIds.includes(item.id) }}
+                accessibilityLabel={`Bandingkan ${item.title}`}
+              >
                 <View
                   style={[
                     styles.checkbox,
@@ -328,7 +383,9 @@ export default function SearchScreen() {
                       backgroundColor: compareIds.includes(item.id) ? theme.colors.inkPrimary : 'transparent',
                     },
                   ]}
-                />
+                >
+                  {compareIds.includes(item.id) ? <Feather name="check" size={13} color={theme.colors.surface} /> : null}
+                </View>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginLeft: 6 }]}>
                   Bandingkan
                 </Text>
@@ -353,6 +410,9 @@ export default function SearchScreen() {
                   <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Coba lagi</Text>
                 </Pressable>
               ) : null}
+              {!error ? <Pressable onPress={() => { setQuery(''); setFilters(defaultFilters); }} style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 16 }]}>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Lihat semua properti</Text>
+              </Pressable> : null}
             </View>
           }
         />
@@ -396,7 +456,7 @@ const styles = StyleSheet.create({
   historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   retryBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16 },
   parsedChipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 6 },
-  parsedChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  parsedChip: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   sortRow: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
   resultRow: {
     flexDirection: 'row',
@@ -405,7 +465,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 10,
   },
-  mapWrap: { flex: 1, marginTop: 14, marginHorizontal: 20, borderRadius: 20, overflow: 'hidden', marginBottom: 110 },
+  mapSection: { flex: 1 },
+  emptyMap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 110 },
+  cityScroller: { flexGrow: 0, height: 54 },
+  cityRow: { paddingHorizontal: 20, alignItems: 'center', gap: 8 },
+  mapWrap: { flex: 1, marginTop: 12, marginHorizontal: 20, borderRadius: 20, overflow: 'hidden', marginBottom: 110 },
+  mapPreview: { position: 'absolute', left: 12, right: 12, bottom: 12, borderRadius: 18, padding: 10, ...shadow.soft },
+  mapPreviewOpen: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 34 },
+  mapPreviewImage: { width: 68, height: 68, borderRadius: 12 },
+  previewClose: { position: 'absolute', right: 8, top: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   projectCard: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   projectImage: { width: '100%', height: 210 },
   projectBody: { padding: 16 },

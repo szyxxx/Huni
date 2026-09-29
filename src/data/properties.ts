@@ -205,10 +205,8 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 
 /**
  * Areas ranked by how many live listings they actually have, computed from
- * `list` rather than hand-typed — the "1240 properti" style fake counts this
- * replaced never matched the real (tiny mock) catalogue. "Vibe" is the
- * dominant property type in that area, since that's the only area-level
- * signal the data actually has.
+ * `list` rather than hand-typed counts. The type label only describes
+ * inventory we can verify in the catalogue.
  */
 export function getPopularAreas(list: Property[]) {
   const byArea = new Map<string, Property[]>();
@@ -225,7 +223,7 @@ export function getPopularAreas(list: Property[]) {
         name,
         count: areaProperties.length,
         image: areaProperties[0].images[0],
-        vibe: `Didominasi ${PROPERTY_TYPE_LABELS[dominantType].toLowerCase()}`,
+        vibe: PROPERTY_TYPE_LABELS[dominantType],
       };
     })
     .sort((a, b) => b.count - a.count)

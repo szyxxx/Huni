@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import type { VerificationTier } from '../data/properties';
 
-const LABEL: Record<VerificationTier, string> = {
+export const VERIFICATION_LABELS: Record<VerificationTier, string> = {
   unverified: '',
   verified_owner: 'Pemilik terverifikasi',
   verified_agent: 'Agen terverifikasi',
@@ -13,7 +13,7 @@ const LABEL: Record<VerificationTier, string> = {
 
 export function VerificationBadge({ tier }: { tier: VerificationTier }) {
   const theme = useTheme();
-  const label = LABEL[tier];
+  const label = VERIFICATION_LABELS[tier];
   if (!label) return null;
   return (
     <View style={[styles.badge, { backgroundColor: theme.colors.brandSoft }]}>

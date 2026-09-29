@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
+import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { DataStatus } from '../../components/DataStatus';
 import { fetchProperties } from '../../data/repository';
@@ -19,6 +20,7 @@ export default function SavedScreen() {
   const { width } = useWindowDimensions();
   const columns = width >= 700 ? 2 : 1;
   const savedIds = useAppStore((s) => s.savedIds);
+  const compareIds = useAppStore((s) => s.compareIds);
   const syncError = useAppStore((s) => s.syncError);
   const savedSearches = useAppStore((s) => s.savedSearches);
   const setIntent = useAppStore((s) => s.setIntent);
@@ -39,6 +41,7 @@ export default function SavedScreen() {
   const getPropertyById = (id: string) => properties.find((p) => p.id === id);
   const recent = recentlyViewed.map(getPropertyById).filter(Boolean) as typeof properties;
   const [newShortlistName, setNewShortlistName] = useState('');
+  const [section, setSection] = useState<'properties' | 'plans'>('properties');
 
   const watchedAlerts = priceAlerts.filter((a) => watchedPriceIds.has(a.propertyId));
 
@@ -54,11 +57,27 @@ export default function SavedScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 12 }}>
-      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Workspace kamu</Text>
+      <View style={{ paddingHorizontal: 20, marginBottom: 18 }}>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Keputusanmu</Text>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-          Properti tersimpan, pencarian, dan simulasi KPR
+          Simpan tempat yang menarik, lalu bandingkan dengan tenang.
         </Text>
+        {saved.length || compareIds.length >= 2 ? <Pressable
+          onPress={() => router.push(compareIds.length >= 2 ? '/compare' : '/(tabs)/search')}
+          style={[styles.nextStep, { backgroundColor: theme.colors.inkPrimary }]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[theme.type.micro, { color: theme.colors.brand }]}>LANGKAH BERIKUTNYA</Text>
+            <Text style={[theme.type.bodyStrong, { color: theme.colors.surface, marginTop: 5 }]}>
+              {compareIds.length >= 2 ? `Bandingkan ${compareIds.length} properti pilihan` : saved.length ? 'Cari pembanding untuk pilihanmu' : 'Mulai dari properti yang kamu suka'}
+            </Text>
+          </View>
+          <Feather name="arrow-up-right" size={20} color={theme.colors.surface} />
+        </Pressable> : null}
+        <View style={styles.sectionTabs}>
+          <Chip label={`Properti (${saved.length})`} selected={section === 'properties'} onPress={() => setSection('properties')} />
+          <Chip label="Rencana & koleksi" selected={section === 'plans'} onPress={() => setSection('plans')} />
+        </View>
       </View>
       {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
       {propertiesError ? (
@@ -66,29 +85,33 @@ export default function SavedScreen() {
       ) : null}
 
       <FlatList
-        key={`saved-columns-${columns}`}
-        data={saved}
+        key={`saved-columns-${columns}-${section}`}
+        data={section === 'properties' ? saved : []}
         keyExtractor={(p) => p.id}
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? { gap: 14, paddingHorizontal: 20 } : undefined}
         contentContainerStyle={{ gap: 14, paddingBottom: insets.bottom + 110 }}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />}
-        ListHeaderComponent={<SectionHeader title="Properti tersimpan" subtitle={`${saved.length} properti`} />}
+        ListHeaderComponent={<SectionHeader title={section === 'properties' ? 'Properti tersimpan' : 'Rencana & koleksi'} subtitle={section === 'properties' ? `${saved.length} properti` : 'Simpan hal penting untuk keputusan berikutnya'} />}
         renderItem={({ item }) => (
           <View style={{ flex: 1, paddingHorizontal: columns === 1 ? 20 : 0 }}>
             <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
           </View>
         )}
-        ListEmptyComponent={
+        ListEmptyComponent={section === 'properties' ?
           <View style={[styles.empty, { backgroundColor: theme.colors.surfaceSoft, marginHorizontal: 20 }]}>
+            <Feather name="heart" size={24} color={theme.colors.inkSecondary} />
             <Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center' }]}>
-              Ketuk ikon hati pada properti untuk menyimpannya di sini.
+              Belum ada properti tersimpan. Temukan tempat yang ingin kamu pertimbangkan.
             </Text>
+            <Pressable onPress={() => router.push('/(tabs)/search')} style={[styles.exploreBtn, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Jelajahi properti</Text>
+            </Pressable>
           </View>
-        }
+        : null}
         ListFooterComponent={
           <View style={{ marginTop: 12 }}>
-            {recent.length > 0 ? (
+            {section === 'properties' && recent.length > 0 ? (
               <View style={{ marginBottom: 20 }}>
                 <SectionHeader title="Baru dilihat" subtitle={`${recent.length} properti`} />
                 <FlatList
@@ -106,7 +129,7 @@ export default function SavedScreen() {
               </View>
             ) : null}
 
-            {watchedAlerts.length > 0 ? (
+            {section === 'properties' && watchedAlerts.length > 0 ? (
               <View style={{ marginBottom: 20 }}>
                 <SectionHeader title="Harga turun" subtitle={`${watchedAlerts.length} properti yang kamu pantau`} />
                 <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -134,7 +157,8 @@ export default function SavedScreen() {
               </View>
             ) : null}
 
-            <SectionHeader title="Shortlist bersama" subtitle={`${shortlists.length} koleksi`} />
+            {section === 'plans' ? <SectionHeader title="Shortlist" subtitle={`${shortlists.length} koleksi`} /> : null}
+            {section === 'plans' ?
             <View style={{ paddingHorizontal: 20, gap: 10 }}>
               <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                 <TextInput
@@ -164,9 +188,9 @@ export default function SavedScreen() {
                   <Feather name="chevron-right" size={18} color={theme.colors.inkTertiary} />
                 </Pressable>
               ))}
-            </View>
+            </View> : null}
 
-            <View style={{ marginTop: 20 }}>
+            {section === 'plans' ? <View style={{ marginTop: 20 }}>
               <SectionHeader title="Pencarian tersimpan" subtitle={`${savedSearches.length} pencarian`} />
             {savedSearches.length === 0 ? (
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, paddingHorizontal: 20 }]}>
@@ -200,9 +224,9 @@ export default function SavedScreen() {
                 ))}
               </View>
             )}
-            </View>
+            </View> : null}
 
-            {hidden.length > 0 ? (
+            {section === 'properties' && hidden.length > 0 ? (
               <View style={{ marginTop: 20 }}>
                 <SectionHeader title="Disembunyikan" subtitle={`${hidden.length} properti`} />
                 <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -225,7 +249,7 @@ export default function SavedScreen() {
               </View>
             ) : null}
 
-            <View style={{ marginTop: 20 }}>
+            {section === 'plans' ? <View style={{ marginTop: 20 }}>
               <SectionHeader title="Simulasi KPR" subtitle={`${kprScenarios.length} skenario tersimpan`} />
               {kprScenarios.length === 0 ? (
                 <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, paddingHorizontal: 20 }]}>
@@ -248,7 +272,7 @@ export default function SavedScreen() {
                   ))}
                 </View>
               )}
-            </View>
+            </View> : null}
           </View>
         }
       />
@@ -257,7 +281,10 @@ export default function SavedScreen() {
 }
 
 const styles = StyleSheet.create({
-  empty: { borderRadius: 20, padding: 28, alignItems: 'center' },
+  empty: { borderRadius: 20, padding: 28, alignItems: 'center', gap: 12 },
+  nextStep: { minHeight: 82, borderRadius: 20, padding: 18, marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sectionTabs: { flexDirection: 'row', gap: 8, marginTop: 20 },
+  exploreBtn: { borderRadius: 14, paddingHorizontal: 20, paddingVertical: 12, marginTop: 4 },
   openSearch: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   row: {
     flexDirection: 'row',

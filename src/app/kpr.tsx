@@ -8,7 +8,7 @@ import { Chip } from '../components/Chip';
 import { Stepper } from '../components/Stepper';
 import { calculateKpr, calculateTakeOver } from '../lib/kpr';
 import { formatDigits, formatIDR } from '../lib/format';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, defaultFilters } from '../store/useAppStore';
 
 type Mode = 'new' | 'takeover';
 
@@ -18,6 +18,8 @@ export default function KprScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ price?: string }>();
   const addKprScenario = useAppStore((s) => s.addKprScenario);
+  const setFilters = useAppStore((s) => s.setFilters);
+  const setIntent = useAppStore((s) => s.setIntent);
   const [mode, setMode] = useState<Mode>('new');
 
   const [priceText, setPriceText] = useState(String(Number(params.price) || 1_500_000_000));
@@ -42,6 +44,7 @@ export default function KprScreen() {
     () => calculateTakeOver({ remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent }),
     [remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent]
   );
+  const canSave = mode === 'new' ? price > 0 : remainingPrincipal > 0 && currentInstallment > 0;
 
   const save = () => {
     if (mode === 'new') {
@@ -133,6 +136,20 @@ export default function KprScreen() {
                 <ResultItem label="Total uang muka" value={formatIDR(result.downPaymentAmount)} />
               </View>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={price <= 0}
+              onPress={() => {
+                setIntent('buy');
+                setFilters({ ...defaultFilters, maxInstallment: Math.ceil(result.monthlyInstallment / 500_000) * 500_000 });
+                router.replace('/(tabs)/search');
+              }}
+              style={[styles.findBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: price > 0 ? 1 : 0.45 }]}
+            >
+              <Feather name="search" size={18} color={theme.colors.inkPrimary} />
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, flex: 1 }]}>Jelajahi estimasi cicilan serupa</Text>
+              <Feather name="arrow-right" size={17} color={theme.colors.inkPrimary} />
+            </Pressable>
           </>
         ) : (
           <>
@@ -204,7 +221,7 @@ export default function KprScreen() {
           MANAPUN. SUKU BUNGA AKTUAL DAPAT BERBEDA TERGANTUNG PRODUK DAN KEBIJAKAN BANK.
         </Text>
 
-        <Pressable onPress={save} style={[styles.saveBtn, { backgroundColor: theme.colors.brand }]}>
+        <Pressable disabled={!canSave} onPress={save} style={[styles.saveBtn, { backgroundColor: theme.colors.brand, opacity: canSave ? 1 : 0.45 }]}>
           <Text style={[theme.type.captionStrong, { color: theme.colors.onBrand }]}>Simpan simulasi ini</Text>
         </Pressable>
       </ScrollView>
@@ -244,4 +261,5 @@ const styles = StyleSheet.create({
   resultCard: { marginTop: 20, borderRadius: 20, padding: 20 },
   resultRow: { flexDirection: 'row', marginTop: 18, gap: 16 },
   saveBtn: { marginTop: 20, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
+  findBtn: { minHeight: 52, marginTop: 12, paddingHorizontal: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 12 },
 });

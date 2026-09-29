@@ -35,7 +35,7 @@ function RootStack() {
 
   return (
     <>
-      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={segments[0] === 'onboarding' || theme.scheme === 'dark' ? 'light' : 'dark'} animated />
       <Stack
         screenOptions={{
           headerShown: false,

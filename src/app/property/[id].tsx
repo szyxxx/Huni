@@ -18,6 +18,7 @@ import { getFitReasons } from '../../lib/recommendations';
 import { PropertyCard } from '../../components/PropertyCard';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
+import { facilityIcon } from '../../lib/facilityIcon';
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -380,9 +381,16 @@ export default function PropertyDetailScreen() {
             {formatPriceLine(property.price, property.priceUnit)}
           </Text>
         </View>
-        <Pressable disabled={!property.advertiser.contactPhone} onPress={contactWhatsApp} style={[styles.contactBtn, { backgroundColor: property.advertiser.contactPhone ? theme.colors.inkPrimary : theme.colors.inkTertiary }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={property.advertiser.contactPhone ? contactWhatsApp : () => {
+            if (!isSaved) toggleSaved(property.id);
+            router.push('/(tabs)/saved');
+          }}
+          style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}
+        >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            {property.advertiser.contactPhone ? 'Hubungi via WhatsApp' : 'Kontak belum tersedia'}
+            {property.advertiser.contactPhone ? 'Hubungi via WhatsApp' : isSaved ? 'Lihat tersimpan' : 'Simpan untuk nanti'}
           </Text>
         </Pressable>
       </GlassSurface>
@@ -403,21 +411,6 @@ function Spec({ label, value, icon }: { label: string; value: string; icon: Reac
       </View>
     </View>
   );
-}
-
-function facilityIcon(name: string): React.ComponentProps<typeof Feather>['name'] {
-  const label = name.toLowerCase();
-  if (/parkir|carport/.test(label)) return 'truck';
-  if (/taman|bermain/.test(label)) return 'sun';
-  if (/keamanan/.test(label)) return 'shield';
-  if (/kolam/.test(label)) return 'droplet';
-  if (/wifi/.test(label)) return 'wifi';
-  if (/ac/.test(label)) return 'wind';
-  if (/gym/.test(label)) return 'activity';
-  if (/laundry/.test(label)) return 'refresh-cw';
-  if (/dapur/.test(label)) return 'coffee';
-  if (/jalan|akses/.test(label)) return 'navigation';
-  return 'check';
 }
 
 const styles = StyleSheet.create({

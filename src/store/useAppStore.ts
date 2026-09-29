@@ -172,7 +172,16 @@ type AppState = {
 
 export const useAppStore = create<AppState>((set, get) => ({
   intent: 'buy',
-  setIntent: (intent) => set({ intent }),
+  setIntent: (intent) => set((state) => ({
+    intent,
+    compareIds: state.intent === intent ? state.compareIds : [],
+    filters: state.intent === intent ? state.filters : {
+      ...state.filters,
+      minPrice: null,
+      maxPrice: null,
+      maxInstallment: null,
+    },
+  })),
 
   savedIds: new Set(),
   toggleSaved: (id) => {

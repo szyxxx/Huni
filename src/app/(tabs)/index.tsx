@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
+import React from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,13 +50,10 @@ export default function HomeScreen() {
     queryFn: fetchProjects,
   });
   const visibleProperties = properties.filter((p) => !hiddenIds.has(p.id));
-  const recommended = visibleProperties.filter((p) => p.fitReason || p.nearby?.length);
-  const popularAreas = getPopularAreas(visibleProperties);
-  const [homeQuery, setHomeQuery] = useState('');
-
-  const submitHomeQuery = () => {
-    router.push({ pathname: '/(tabs)/search', params: homeQuery.trim() ? { q: homeQuery } : {} });
-  };
+  const recommended = visibleProperties.filter((p) => p.intent === (intent === 'rent' ? 'rent' : 'buy') && (p.fitReason || p.nearby?.length));
+  const featuredProperty = recommended[0] ?? visibleProperties.find((p) => p.intent === (intent === 'rent' ? 'rent' : 'buy'));
+  const featuredProject = projects[0];
+  const popularAreas = getPopularAreas(visibleProperties.filter((p) => p.intent === (intent === 'rent' ? 'rent' : 'buy')));
 
   return (
     <ScrollView
@@ -79,7 +76,7 @@ export default function HomeScreen() {
           <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
             {timeGreeting()}{firstName ? `, ${firstName}` : ''}
           </Text>
-          <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Cari rumah yang pas untukmu</Text>
+          <Text style={[theme.type.display, { color: theme.colors.inkPrimary, marginTop: 6 }]}>Temukan tempat yang terasa tepat.</Text>
         </View>
       </View>
 
@@ -91,50 +88,73 @@ export default function HomeScreen() {
         />
       ) : null}
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Buka pencarian properti"
+        onPress={() => router.push({ pathname: '/(tabs)/search', params: { compose: String(Date.now()) } })}
+        style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+      >
+        <Feather name="search" size={18} color={theme.colors.inkTertiary} />
+        <Text style={[theme.type.body, { flex: 1, marginLeft: 10, color: theme.colors.inkSecondary }]} numberOfLines={1}>
+          Area, tipe, atau ceritakan kebutuhanmu
+        </Text>
+        <Feather name="arrow-up-right" size={17} color={theme.colors.inkPrimary} />
+      </Pressable>
+      <Pressable onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'rumah 3 kamar dekat ITB cicilan 8 juta' } })} style={styles.exampleRow}>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>Coba “rumah 3 kamar dekat ITB cicilan 8 juta”</Text>
+        <Feather name="arrow-right" size={14} color={theme.colors.brandInk} />
+      </Pressable>
+
       <View style={styles.intentRow}>
         {INTENTS.map((item) => (
           <Chip key={item.key} label={item.label} selected={intent === item.key} onPress={() => setIntent(item.key)} />
         ))}
       </View>
 
-      <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-        <Feather name="search" size={18} color={theme.colors.inkTertiary} />
-        <TextInput
-          value={homeQuery}
-          onChangeText={setHomeQuery}
-          onSubmitEditing={submitHomeQuery}
-          onFocus={() => { if (!homeQuery) router.push('/(tabs)/search'); }}
-          placeholder='"rumah 3 kamar dekat ITB cicilan 8 juta"'
-          placeholderTextColor={theme.colors.inkTertiary}
-          returnKeyType="search"
-          style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
-        />
-      </View>
+      {(intent === 'new-projects' ? featuredProject : featuredProperty) ? (
+        <View style={styles.featureSection}>
+          <SectionHeader title={intent === 'new-projects' ? 'Proyek untuk dijelajahi' : 'Pilihan untukmu'} actionLabel="Lihat semua" onAction={() => router.push('/(tabs)/search')} />
+          {intent === 'new-projects' && featuredProject ? (
+            <Pressable onPress={() => router.push(`/project/${featuredProject.id}`)} style={[styles.featureProject, { backgroundColor: theme.colors.surface }]}>
+              <Image source={{ uri: featuredProject.images[0] }} style={styles.featureProjectImage} contentFit="cover" />
+              <View style={styles.featureProjectBody}>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>PROYEK BARU · {featuredProject.progressPercent}% SELESAI</Text>
+                <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 6 }]}>{featuredProject.name}</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{featuredProject.area}, {featuredProject.city} · {featuredProject.developer}</Text>
+              </View>
+            </Pressable>
+          ) : featuredProperty ? (
+            <View style={styles.featureProperty}>
+              <PropertyCard layout="feature" property={featuredProperty} onPress={() => router.push(`/property/${featuredProperty.id}`)} />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
-      <Pressable
-        onPress={() => router.push('/kpr')}
+      {intent !== 'new-projects' ? <Pressable
+        onPress={() => router.push(intent === 'rent' ? '/(tabs)/search' : '/kpr')}
         style={[styles.kprBanner, { backgroundColor: theme.colors.inkPrimary }]}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>Cek keterjangkauan KPR</Text>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>{intent === 'rent' ? 'Cari sewa sesuai anggaran' : 'Cek keterjangkauan KPR'}</Text>
           <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>
-            Cari berdasarkan cicilan bulanan yang nyaman untukmu
+            {intent === 'rent' ? 'Bandingkan biaya bulanan dan tempat yang pas' : 'Cari berdasarkan cicilan bulanan yang nyaman untukmu'}
           </Text>
         </View>
         <Feather name="arrow-right" size={20} color={theme.colors.brand} />
-      </Pressable>
+      </Pressable> : null}
 
-      <View style={{ marginTop: 28 }}>
-        <SectionHeader title="Rekomendasi untukmu" subtitle="Berdasarkan preferensi dan riwayat pencarian" />
+      {intent !== 'new-projects' && recommended.length > 1 ? <View style={{ marginTop: 30 }}>
+        <SectionHeader title="Lanjut jelajahi" subtitle="Pilihan lain untuk dibandingkan" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
-          {recommended.map((p) => (
+          {recommended.slice(1, 4).map((p) => (
             <PropertyCard key={p.id} property={p} onPress={() => router.push(`/property/${p.id}`)} />
           ))}
         </ScrollView>
-      </View>
+      </View> : null}
 
-      <View style={{ marginTop: 28 }}>
-        <SectionHeader title="Area populer" subtitle="Yang paling banyak dicari minggu ini" />
+      {intent !== 'new-projects' && popularAreas.length > 0 ? <View style={{ marginTop: 28 }}>
+        <SectionHeader title="Jelajahi area" subtitle="Area dengan properti yang tersedia" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {popularAreas.map((a) => (
             <Pressable
@@ -152,9 +172,9 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </View> : null}
 
-      <View style={{ marginTop: 28 }}>
+      {intent === 'buy' ? <View style={{ marginTop: 28 }}>
         <SectionHeader title="Proyek baru" subtitle="Dari developer resmi terverifikasi" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {projects.map((proj) => (
@@ -174,7 +194,7 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </View> : null}
     </ScrollView>
   );
 }
@@ -195,10 +215,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
     paddingHorizontal: 16,
-    height: 52,
-    borderRadius: 16,
+    minHeight: 60,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  exampleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, paddingTop: 10 },
+  featureSection: { marginTop: 30 },
+  featureProperty: { marginHorizontal: 20 },
+  featureProject: { marginHorizontal: 20, borderRadius: 20, overflow: 'hidden' },
+  featureProjectImage: { width: '100%', height: 250 },
+  featureProjectBody: { padding: 20 },
   kprBanner: {
     flexDirection: 'row',
     alignItems: 'center',

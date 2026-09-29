@@ -19,8 +19,13 @@ export default function FiltersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const storedFilters = useAppStore((s) => s.filters);
+  const intent = useAppStore((s) => s.intent);
   const setFilters = useAppStore((s) => s.setFilters);
   const [draft, setDraft] = useState<FilterState>(storedFilters);
+  const priceStep = intent === 'rent' ? 500_000 : 100_000_000;
+  const maxPriceStep = intent === 'rent' ? 1_000_000 : 500_000_000;
+  const initialMaxPrice = intent === 'rent' ? 5_000_000 : 2_000_000_000;
+  const invalidRange = Boolean(draft.minPrice && draft.maxPrice && draft.minPrice > draft.maxPrice);
 
   const toggleType = (type: PropertyType) => {
     setDraft((d) => ({
@@ -30,6 +35,7 @@ export default function FiltersScreen() {
   };
 
   const apply = () => {
+    if (invalidRange) return;
     setFilters(draft);
     router.back();
   };
@@ -50,7 +56,9 @@ export default function FiltersScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Tipe properti</Text>
+        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Saring yang penting untukmu</Text>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 5 }]}>Sesuaikan pilihan, lalu kembali ke hasil pencarian.</Text>
+        <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 26 }]}>Tipe properti</Text>
         <View style={styles.chipWrap}>
           {TYPE_OPTIONS.map((t) => (
             <Chip key={t.key} label={t.label} selected={draft.types.includes(t.key)} onPress={() => toggleType(t.key)} />
@@ -59,26 +67,29 @@ export default function FiltersScreen() {
 
         <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <Stepper
-            label="Harga minimum"
+            label={intent === 'rent' ? 'Sewa minimum per bulan' : 'Harga minimum'}
             value={draft.minPrice ? formatIDR(draft.minPrice) : 'Tidak ditentukan'}
-            onDecrease={() => setDraft((d) => ({ ...d, minPrice: Math.max(0, (d.minPrice ?? 0) - 100_000_000) }))}
-            onIncrease={() => setDraft((d) => ({ ...d, minPrice: (d.minPrice ?? 0) + 100_000_000 }))}
+            onDecrease={() => setDraft((d) => ({ ...d, minPrice: Math.max(0, (d.minPrice ?? 0) - priceStep) || null }))}
+            onIncrease={() => setDraft((d) => ({ ...d, minPrice: (d.minPrice ?? 0) + priceStep }))}
           />
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
           <Stepper
-            label="Harga maksimum"
+            label={intent === 'rent' ? 'Sewa maksimum per bulan' : 'Harga maksimum'}
             value={draft.maxPrice ? formatIDR(draft.maxPrice) : 'Tidak ditentukan'}
-            onDecrease={() => setDraft((d) => ({ ...d, maxPrice: Math.max(0, (d.maxPrice ?? 500_000_000) - 100_000_000) }))}
-            onIncrease={() => setDraft((d) => ({ ...d, maxPrice: (d.maxPrice ?? 400_000_000) + 100_000_000 }))}
+            onDecrease={() => setDraft((d) => ({ ...d, maxPrice: d.maxPrice ? Math.max(0, d.maxPrice - maxPriceStep) || null : null }))}
+            onIncrease={() => setDraft((d) => ({ ...d, maxPrice: d.maxPrice ? d.maxPrice + maxPriceStep : initialMaxPrice }))}
           />
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          <Stepper
-            label="Cicilan bulanan maksimum"
-            value={draft.maxInstallment ? formatIDR(draft.maxInstallment) : 'Tidak ditentukan'}
-            onDecrease={() => setDraft((d) => ({ ...d, maxInstallment: Math.max(0, (d.maxInstallment ?? 0) - 1_000_000) }))}
-            onIncrease={() => setDraft((d) => ({ ...d, maxInstallment: (d.maxInstallment ?? 0) + 1_000_000 }))}
-          />
+          {intent !== 'rent' ? <>
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            <Stepper
+              label="Cicilan bulanan maksimum"
+              value={draft.maxInstallment ? formatIDR(draft.maxInstallment) : 'Tidak ditentukan'}
+              onDecrease={() => setDraft((d) => ({ ...d, maxInstallment: Math.max(0, (d.maxInstallment ?? 0) - 1_000_000) || null }))}
+              onIncrease={() => setDraft((d) => ({ ...d, maxInstallment: (d.maxInstallment ?? 0) + 1_000_000 }))}
+            />
+          </> : null}
         </View>
+        {invalidRange ? <Text style={[theme.type.caption, { color: theme.colors.danger, marginTop: 8 }]}>Harga minimum melebihi batas maksimum.</Text> : null}
 
         <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <Stepper
@@ -129,7 +140,7 @@ export default function FiltersScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16, borderColor: theme.colors.border, backgroundColor: theme.colors.canvas }]}>
-        <Pressable onPress={apply} style={[styles.applyBtn, { backgroundColor: theme.colors.inkPrimary }]}>
+        <Pressable onPress={apply} disabled={invalidRange} accessibilityState={{ disabled: invalidRange }} style={[styles.applyBtn, { backgroundColor: theme.colors.inkPrimary, opacity: invalidRange ? 0.45 : 1 }]}>
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Terapkan filter</Text>
         </Pressable>
       </View>

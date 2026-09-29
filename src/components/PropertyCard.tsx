@@ -12,7 +12,7 @@ import type { Property } from '../data/properties';
 type Props = {
   property: Property;
   onPress: () => void;
-  layout?: 'rail' | 'grid';
+  layout?: 'rail' | 'grid' | 'feature';
 };
 
 export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
@@ -51,11 +51,11 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
       onLongPress={hideProperty}
       style={({ pressed }) => [
         styles.card,
-        layout === 'grid' && styles.gridCard,
+        layout !== 'rail' && styles.gridCard,
         { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: pressed ? 0.96 : 1 },
       ]}
     >
-      <View style={[styles.mediaWrap, layout === 'grid' && styles.gridMediaWrap]}>
+      <View style={[styles.mediaWrap, layout === 'grid' && styles.gridMediaWrap, layout === 'feature' && styles.featureMediaWrap]}>
         <Image source={{ uri: property.images[0] }} style={styles.media} contentFit="cover" transition={200} />
         {property.promotion !== 'normal' ? (
           <View style={[styles.promoTag, { backgroundColor: theme.colors.inkPrimary }]}>
@@ -77,11 +77,11 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
           <Feather name="heart" size={15} color={isSaved ? theme.colors.brand : '#fff'} />
         </Pressable>
       </View>
-      <View style={styles.body}>
-        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
+      <View style={[styles.body, layout === 'feature' && styles.featureBody]}>
+        <Text style={[layout === 'feature' ? theme.type.title : theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
           {formatPriceLine(property.price, property.priceUnit)}
         </Text>
-        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 2 }]} numberOfLines={1}>
+        <Text style={[layout === 'feature' ? theme.type.headline : theme.type.caption, { color: theme.colors.inkPrimary, marginTop: layout === 'feature' ? 8 : 2 }]} numberOfLines={layout === 'feature' ? 2 : 1}>
           {property.title}
         </Text>
         <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]} numberOfLines={1}>
@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
     height: 170,
   },
   gridMediaWrap: { height: 210 },
+  featureMediaWrap: { height: 250 },
   media: {
     width: '100%',
     height: '100%',
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
   body: {
     padding: 14,
   },
+  featureBody: { padding: 20 },
   fitPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,

@@ -66,7 +66,7 @@ export default function DeveloperProfileScreen() {
                 {proj.area}, {proj.city}
               </Text>
               <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-                mulai {formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}
+                {proj.units.length ? `mulai ${formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}` : 'Harga unit belum tersedia'}
               </Text>
             </View>
           </Pressable>

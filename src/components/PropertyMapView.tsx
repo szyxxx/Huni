@@ -8,6 +8,7 @@ import type { Property } from '../data/properties';
 type Props = {
   properties: Property[];
   onSelect: (id: string) => void;
+  selectedId?: string | null;
 };
 
 // OpenFreeMap's hosted "positron" style — free, no API key, no billing.
@@ -26,7 +27,7 @@ const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
  * native module is missing for any other reason, so this never crashes the
  * Search screen it lives on.
  */
-export function PropertyMapView({ properties, onSelect }: Props) {
+export function PropertyMapView({ properties, onSelect, selectedId }: Props) {
   const theme = useTheme();
   const [retryKey, setRetryKey] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -61,6 +62,7 @@ export function PropertyMapView({ properties, onSelect }: Props) {
       <MapLibreView
         properties={mappedProperties}
         onSelect={onSelect}
+        selectedId={selectedId}
         theme={theme}
         onLoad={() => setStatus('ready')}
         onFail={() => setStatus('failed')}
@@ -74,7 +76,7 @@ export function PropertyMapView({ properties, onSelect }: Props) {
   );
 }
 
-function MapLibreView({ properties, onSelect, theme, onLoad, onFail }: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
+function MapLibreView({ properties, onSelect, selectedId, theme, onLoad, onFail }: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
   // Required inline (not top-level) so web/Expo Go never evaluate this native import.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Map, Camera, Marker } = require('@maplibre/maplibre-react-native');
@@ -102,8 +104,8 @@ function MapLibreView({ properties, onSelect, theme, onLoad, onFail }: Props & {
       <Camera {...cameraState} duration={0} initialViewState={cameraState} />
       {properties.map((p) => (
         <Marker key={p.id} id={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
-          <View style={[styles.pin, { backgroundColor: theme.colors.inkPrimary }]}>
-            <Text style={[theme.type.micro, { color: theme.colors.surface }]}>{formatIDR(p.price)}</Text>
+          <View style={[styles.pin, { backgroundColor: selectedId === p.id ? theme.colors.brand : theme.colors.inkPrimary }]}>
+            <Text style={[theme.type.micro, { color: selectedId === p.id ? theme.colors.onBrand : theme.colors.surface }]}>{formatIDR(p.price)}</Text>
           </View>
         </Marker>
       ))}

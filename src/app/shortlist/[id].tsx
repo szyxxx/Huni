@@ -115,7 +115,7 @@ export default function ShortlistScreen() {
             Bagikan tautan privat agar mereka bisa ikut memutuskan
           </Text>
         </View>
-        <Text style={{ color: theme.colors.brand, fontSize: 20 }}>⇧</Text>
+        <Feather name="share-2" size={20} color={theme.colors.surface} />
       </Pressable>
 
       <FlatList
@@ -127,7 +127,7 @@ export default function ShortlistScreen() {
         renderItem={({ item }) => (
           <View style={{ width: '48%' }}>
             <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
-            <Pressable onPress={() => removeFromShortlist(shortlist.id, item.id)} style={{ marginTop: 6 }}>
+            <Pressable onPress={() => removeFromShortlist(shortlist.id, item.id)} style={styles.removeButton} accessibilityRole="button" accessibilityLabel={`Keluarkan ${item.title} dari shortlist`}>
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, textDecorationLine: 'underline' }]}>
                 Keluarkan
               </Text>
@@ -136,9 +136,13 @@ export default function ShortlistScreen() {
         )}
         ListEmptyComponent={
           <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-            <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-              Belum ada properti. Tambahkan dari halaman detail properti.
+            <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Mulai pilih bersama</Text>
+            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 6 }]}>
+              Jelajahi properti, lalu tambahkan pilihanmu dari halaman detail.
             </Text>
+            <Pressable onPress={() => router.push('/(tabs)/search')} style={[styles.exploreButton, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Jelajahi properti</Text>
+            </Pressable>
           </View>
         }
       />
@@ -150,4 +154,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
   inviteBanner: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginBottom: 16 },
+  removeButton: { minHeight: 44, justifyContent: 'center' },
+  exploreButton: { alignSelf: 'flex-start', marginTop: 18, minHeight: 48, paddingHorizontal: 18, borderRadius: 14, justifyContent: 'center' },
 });

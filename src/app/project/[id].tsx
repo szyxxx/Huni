@@ -11,6 +11,8 @@ import { GlassSurface } from '../../components/GlassSurface';
 import { Skeleton } from '../../components/Skeleton';
 import { fetchProjectById } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
+import { facilityIcon } from '../../lib/facilityIcon';
+import { useAppStore } from '../../store/useAppStore';
 import type { UnitType } from '../../data/projects';
 
 const NO_CLUSTER = '__none__';
@@ -30,6 +32,7 @@ export default function ProjectDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const setIntent = useAppStore((s) => s.setIntent);
   const { width } = useWindowDimensions();
   const { data: project, isLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ['project', id],
@@ -49,18 +52,23 @@ export default function ProjectDetailScreen() {
       );
     }
     return (
-      <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
-        <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
+      <View style={[styles.center, { backgroundColor: theme.colors.canvas, paddingHorizontal: 28 }]}>
+        <Feather name="home" size={26} color={theme.colors.inkSecondary} />
+        <Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 16 }]}>
           {projectError ? 'Proyek belum dapat dimuat.' : 'Proyek tidak ditemukan.'}
         </Text>
         {projectError ? <Pressable onPress={() => { void refetchProject(); }} style={{ marginTop: 12 }}>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Coba lagi</Text>
         </Pressable> : null}
+        <Pressable onPress={() => { setIntent('new-projects'); router.replace('/(tabs)/search'); }} style={{ marginTop: 18, minHeight: 44, justifyContent: 'center' }}>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Jelajahi proyek lain</Text>
+        </Pressable>
       </View>
     );
   }
 
   const unitClusters = project ? groupByCluster(project.units) : [];
+  const lowestPrice = project.units.length ? Math.min(...project.units.map((u) => u.priceFrom)) : null;
 
   const requestBrochure = () => {
     if (!project.contactPhone) return;
@@ -111,17 +119,19 @@ export default function ProjectDetailScreen() {
             </View>
           ) : null}
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>
-            Progres pembangunan
-          </Text>
-          <View style={[styles.progressTrack, { backgroundColor: theme.colors.surfaceSoft }]}>
-            <View style={[styles.progressFill, { width: `${project.progressPercent}%`, backgroundColor: theme.colors.brand }]} />
+          <View style={[styles.progressPanel, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.progressHeading}>
+              <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Progres pembangunan</Text>
+              <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>{project.progressPercent}%</Text>
+            </View>
+            <View style={[styles.progressTrack, { backgroundColor: theme.colors.surfaceSoft }]}>
+              <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, project.progressPercent))}%`, backgroundColor: theme.colors.brand }]} />
+            </View>
+            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 10 }]}>{project.progressLabel}</Text>
           </View>
-          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 6 }]}>
-            {project.progressLabel} · {project.progressPercent}%
-          </Text>
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Tipe unit</Text>
+          {!unitClusters.length ? <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 10 }]}>Tipe unit belum tersedia untuk proyek ini.</Text> : null}
           {unitClusters.map(([cluster, units]) => (
             <View key={cluster} style={{ marginTop: 10 }}>
               {cluster !== NO_CLUSTER ? (
@@ -132,35 +142,36 @@ export default function ProjectDetailScreen() {
               <View style={{ gap: 10 }}>
                 {units.map((u) => (
                   <View key={u.id} style={[styles.unitRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{u.name}</Text>
-                      <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                        {u.bedrooms} KT · {u.bathrooms} KM · {u.buildingArea} m² · {u.available} unit tersedia
-                      </Text>
+                    <View style={styles.unitHeading}>
+                      <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, flex: 1 }]}>{u.name}</Text>
+                      <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{u.available} TERSEDIA</Text>
                     </View>
-                    <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
-                      mulai {formatIDR(u.priceFrom)}
-                    </Text>
+                    <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 8 }]}>{u.bedrooms} kamar · {u.bathrooms} mandi · {u.buildingArea} m²</Text>
+                    <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 12 }]}>Mulai {formatIDR(u.priceFrom)}</Text>
                   </View>
                 ))}
               </View>
             </View>
           ))}
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Fasilitas</Text>
+          {project.facilities.length ? <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 28 }]}>Fasilitas</Text> : null}
           <View style={styles.facilityWrap}>
             {project.facilities.map((f) => (
-              <View key={f} style={[styles.facilityChip, { backgroundColor: theme.colors.surfaceSoft }]}>
-                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{f}</Text>
+              <View key={f} style={styles.facilityItem}>
+                <View style={[styles.facilityIcon, { backgroundColor: theme.colors.surfaceSoft }]}>
+                  <Feather name={facilityIcon(f)} size={17} color={theme.colors.inkPrimary} />
+                </View>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, flex: 1 }]}>{f}</Text>
               </View>
             ))}
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Lokasi & sekitar</Text>
+          {project.nearby.length ? <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 28 }]}>Lokasi & sekitar</Text> : null}
           {project.nearby.map((n) => (
-            <Text key={n.label} style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-              🚗 {n.minutes} menit dari {n.label.toLowerCase()}
-            </Text>
+            <View key={n.label} style={styles.nearbyRow}>
+              <Feather name="navigation" size={14} color={theme.colors.brandInk} />
+              <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{n.minutes} menit dari {n.label.toLowerCase()}</Text>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -169,12 +180,16 @@ export default function ProjectDetailScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Mulai dari</Text>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
-            {formatIDR(Math.min(...project.units.map((u) => u.priceFrom)))}
+            {lowestPrice === null ? 'Harga belum tersedia' : formatIDR(lowestPrice)}
           </Text>
         </View>
-        <Pressable disabled={!project.contactPhone} onPress={requestBrochure} style={[styles.contactBtn, { backgroundColor: project.contactPhone ? theme.colors.inkPrimary : theme.colors.inkTertiary }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={project.contactPhone ? requestBrochure : () => router.push({ pathname: '/developer/[name]', params: { name: project.developer } })}
+          style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}
+        >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            {project.contactPhone ? 'Minta brosur' : 'Kontak belum tersedia'}
+            {project.contactPhone ? 'Minta brosur' : 'Lihat developer'}
           </Text>
         </Pressable>
       </GlassSurface>
@@ -185,16 +200,21 @@ export default function ProjectDetailScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   topBar: { position: 'absolute', left: 16 },
-  circleBtnWrap: { width: 40, height: 40, borderRadius: 20 },
+  circleBtnWrap: { width: 48, height: 48, borderRadius: 24 },
   circleBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: 20, paddingTop: 18 },
+  content: { paddingHorizontal: 24, paddingTop: 20 },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
   promoBanner: { marginTop: 14, padding: 14, borderRadius: 12 },
-  progressTrack: { height: 8, borderRadius: 4, marginTop: 10, overflow: 'hidden' },
+  progressPanel: { marginTop: 24, borderRadius: 20, padding: 20 },
+  progressHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  progressTrack: { height: 8, borderRadius: 4, marginTop: 14, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
-  unitRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  facilityWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  facilityChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
+  unitRow: { padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
+  unitHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  facilityWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+  facilityItem: { width: '47%', minWidth: 138, flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 44 },
+  facilityIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  nearbyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   contactBar: {
     position: 'absolute',
     left: 16,
