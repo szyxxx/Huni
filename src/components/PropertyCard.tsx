@@ -52,6 +52,7 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
       style={({ pressed }) => [
         styles.card,
         layout !== 'rail' && styles.gridCard,
+        layout === 'feature' && styles.featureCard,
         { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: pressed ? 0.96 : 1 },
       ]}
     >
@@ -77,7 +78,7 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
           <Feather name="heart" size={15} color={isSaved ? theme.colors.brand : '#fff'} />
         </Pressable>
       </View>
-      <View style={[styles.body, layout === 'feature' && styles.featureBody]}>
+      <View style={[styles.body, layout === 'feature' && styles.featureBody, layout === 'feature' && { backgroundColor: theme.colors.surface, ...theme.shadow.soft }]}>
         <Text style={[layout === 'feature' ? theme.type.title : theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
           {formatPriceLine(property.price, property.priceUnit)}
         </Text>
@@ -119,12 +120,13 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   gridCard: { width: '100%' },
+  featureCard: { borderWidth: 0, backgroundColor: 'transparent' },
   mediaWrap: {
     width: '100%',
     height: 170,
   },
   gridMediaWrap: { height: 210 },
-  featureMediaWrap: { height: 250 },
+  featureMediaWrap: { height: 290, borderRadius: 24, overflow: 'hidden' },
   media: {
     width: '100%',
     height: '100%',
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
   body: {
     padding: 14,
   },
-  featureBody: { padding: 20 },
+  featureBody: { padding: 20, marginHorizontal: 10, marginTop: -30, marginBottom: 12, borderRadius: 20 },
   fitPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,

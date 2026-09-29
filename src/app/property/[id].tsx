@@ -134,7 +134,7 @@ export default function PropertyDetailScreen() {
           >
             {property.images.map((uri, i) => (
               <Pressable key={i} onPress={() => router.push(`/gallery/${property.id}?index=${i}`)}>
-                <Image source={{ uri }} style={{ width, height: 320 }} contentFit="cover" transition={200} />
+                <Image source={{ uri }} style={{ width, height: 380 }} contentFit="cover" transition={200} />
               </Pressable>
             ))}
           </ScrollView>
@@ -180,16 +180,19 @@ export default function PropertyDetailScreen() {
           ) : null}
         </View>
 
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: theme.colors.canvas }]}>
+          <View style={styles.detailHandle} />
           <VerificationBadge tier={property.verification} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 }}>
+          <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 14 }]}>{property.title}</Text>
+          <View style={styles.locationLine}><Feather name="map-pin" size={15} color={theme.colors.inkTertiary} /><Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{property.area}, {property.city}</Text></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
             <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>
               {formatPriceLine(property.price, property.priceUnit)}
             </Text>
             {property.previousPrice && property.previousPrice > property.price ? (
               <View style={[styles.dropBadge, { backgroundColor: theme.colors.success }]}>
                 <Text style={[theme.type.micro, { color: '#fff' }]}>
-                  TURUN DARI {formatIDR(property.previousPrice)}
+                  HARGA TURUN
                 </Text>
               </View>
             ) : null}
@@ -274,13 +277,6 @@ export default function PropertyDetailScreen() {
               <Feather name="chevron-right" size={18} color={theme.colors.brandInk} />
             </Pressable>
           ) : null}
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 18 }]}>
-            {property.title}
-          </Text>
-          <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-            {property.area}, {property.city}
-          </Text>
-
           {fitReasons.length > 0 ? (
             <View style={[styles.fitBanner, { backgroundColor: theme.colors.brandSoft }]}>
               <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>
@@ -300,6 +296,12 @@ export default function PropertyDetailScreen() {
             {property.landArea ? <Spec label="Luas tanah" value={`${property.landArea} m²`} icon="maximize" /> : null}
             {property.buildingArea ? <Spec label="Luas bangunan" value={`${property.buildingArea} m²`} icon="layers" /> : null}
           </View>
+
+          {property.images.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRail}>
+            {property.images.slice(0, 5).map((uri, index) => <Pressable key={`${uri}-${index}`} accessibilityRole="button" accessibilityLabel={`Lihat foto ${index + 1}`} onPress={() => router.push(`/gallery/${property.id}?index=${index}`)}>
+              <Image source={{ uri }} style={styles.galleryThumb} contentFit="cover" />
+            </Pressable>)}
+          </ScrollView> : null}
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Tentang properti</Text>
           <View style={[styles.descriptionPanel, { backgroundColor: theme.colors.surfaceRaised }]}>
@@ -374,7 +376,7 @@ export default function PropertyDetailScreen() {
         </View>
       </ScrollView>
 
-      <GlassSurface style={[styles.contactBar, { paddingBottom: insets.bottom + 12 }]} intensity={60}>
+      <GlassSurface style={[styles.contactBar, { bottom: insets.bottom + 8 }]} intensity={60}>
         <View style={{ flex: 1 }}>
           <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Harga</Text>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
@@ -437,7 +439,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  content: { paddingHorizontal: 24, paddingTop: 20 },
+  content: { paddingHorizontal: 24, paddingTop: 18, marginTop: -32, borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  detailHandle: { width: 34, height: 4, borderRadius: 3, backgroundColor: '#B9B5B0', alignSelf: 'center', marginBottom: 18 },
+  locationLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 },
+  galleryRail: { gap: 8, paddingTop: 18 },
+  galleryThumb: { width: 78, height: 78, borderRadius: 14 },
   fitBanner: { borderRadius: 16, padding: 14, marginTop: 16 },
   nearbyGroup: { marginTop: 14, gap: 6 },
   nearbyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -478,6 +484,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     paddingTop: 12,
+    paddingBottom: 12,
   },
   contactBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 },
 });

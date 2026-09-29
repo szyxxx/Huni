@@ -24,7 +24,7 @@ const LABELS: Record<string, string> = {
 function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const dockWidth = Math.min(width - 56, 380);
+  const dockWidth = Math.min(width - 32, 420);
 
   return (
     <View pointerEvents="box-none" style={[styles.position, { bottom: insets.bottom + 8 }]}>
@@ -59,10 +59,12 @@ function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBar
               accessibilityState={{ selected: active }}
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
               testID={options.tabBarButtonTestID}
-              style={[styles.tab, active ? styles.activeTab : styles.inactiveTab, active && { backgroundColor: theme.colors.surfaceSoft }]}
+              style={styles.tab}
             >
-              <Feather name={icon} size={21} color={active ? theme.colors.inkPrimary : theme.colors.inkSecondary} />
-              {active ? <Text numberOfLines={1} style={[styles.activeLabel, { color: theme.colors.inkPrimary }]}>{label}</Text> : null}
+              <View style={[styles.iconWell, active && { backgroundColor: theme.colors.inkPrimary, borderRadius: 999 }]}>
+                <Feather name={icon} size={20} color={active ? theme.colors.surface : theme.colors.inkSecondary} />
+              </View>
+              <Text numberOfLines={1} style={[styles.tabLabel, { color: active ? theme.colors.inkPrimary : theme.colors.inkTertiary, fontWeight: active ? '600' : '400' }]}>{label}</Text>
             </Pressable>
           );
         })}
@@ -91,9 +93,8 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   position: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  dock: { height: 62, borderRadius: 23, flexDirection: 'row', alignItems: 'center', padding: 6 },
-  tab: { minHeight: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  activeTab: { flex: 1.55, gap: 8, paddingHorizontal: 12 },
-  inactiveTab: { flex: 0.8 },
-  activeLabel: { fontSize: 13, lineHeight: 18, fontWeight: '600', letterSpacing: -0.2 },
+  dock: { height: 74, borderRadius: 28, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5 },
+  tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  iconWell: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  tabLabel: { fontSize: 11, lineHeight: 14, letterSpacing: -0.1 },
 });

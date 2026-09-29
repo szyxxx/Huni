@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
-import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { PropertyCard } from '../../components/PropertyCard';
 import { DataStatus } from '../../components/DataStatus';
@@ -73,12 +72,17 @@ export default function HomeScreen() {
       }
     >
       <View style={styles.header}>
-        <View>
-          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-            {timeGreeting()}{firstName ? `, ${firstName}` : ''}
-          </Text>
-          <Text style={[theme.type.display, { color: theme.colors.inkPrimary, marginTop: 6 }]}>Temukan tempat yang terasa tepat.</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{timeGreeting()},</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{firstName || 'selamat datang'}</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Buka profil" onPress={() => router.push('/(tabs)/profile')} style={[styles.avatar, { backgroundColor: theme.colors.inkPrimary }]}>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>{firstName?.charAt(0).toUpperCase() || 'H'}</Text>
+        </Pressable>
+      </View>
+      <View style={styles.intro}>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Ruang untuk hidupmu.</Text>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>Temukan tempat yang terasa tepat.</Text>
       </View>
 
       {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
@@ -97,20 +101,25 @@ export default function HomeScreen() {
       >
         <Feather name="search" size={18} color={theme.colors.inkTertiary} />
         <Text style={[theme.type.body, { flex: 1, marginLeft: 10, color: theme.colors.inkSecondary }]} numberOfLines={1}>
-          Area, tipe, atau ceritakan kebutuhanmu
+          Cari area atau ceritakan kebutuhanmu
         </Text>
-        <Feather name="arrow-up-right" size={17} color={theme.colors.inkPrimary} />
-      </Pressable>
-      <Pressable onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'rumah 3 kamar dekat ITB cicilan 8 juta' } })} style={styles.exampleRow}>
-        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>Coba “rumah 3 kamar dekat ITB cicilan 8 juta”</Text>
-        <Feather name="arrow-right" size={14} color={theme.colors.brandInk} />
+        <View style={[styles.searchAction, { backgroundColor: theme.colors.inkPrimary }]}><Feather name="arrow-up-right" size={18} color={theme.colors.surface} /></View>
       </Pressable>
 
-      <View style={styles.intentRow}>
+      <View style={[styles.intentRow, { backgroundColor: theme.colors.surfaceSoft }]}>
         {INTENTS.map((item) => (
-          <Chip key={item.key} label={item.label} selected={intent === item.key} onPress={() => setIntent(item.key)} />
+          <Pressable key={item.key} onPress={() => setIntent(item.key)} accessibilityRole="tab" accessibilityState={{ selected: intent === item.key }} style={[styles.intentTab, intent === item.key && { backgroundColor: theme.colors.inkPrimary }]}>
+            <Text style={[theme.type.captionStrong, { color: intent === item.key ? theme.colors.surface : theme.colors.inkSecondary }]}>{item.label}</Text>
+          </Pressable>
         ))}
       </View>
+
+      {intent !== 'new-projects' && popularAreas.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaChips}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/search')} style={[styles.areaChip, { backgroundColor: theme.colors.inkPrimary }]}><Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Semua area</Text></Pressable>
+        {popularAreas.slice(0, 5).map((area) => <Pressable key={area.id} accessibilityRole="button" onPress={() => router.push(`/(tabs)/search?q=${encodeURIComponent(area.name)}`)} style={[styles.areaChip, { backgroundColor: theme.colors.surface }]}>
+          <Feather name="map-pin" size={13} color={theme.colors.inkTertiary} /><Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{area.name}</Text>
+        </Pressable>)}
+      </ScrollView> : null}
 
       {(intent === 'new-projects' ? featuredProject : featuredProperty) ? (
         <View style={styles.featureSection}>
@@ -204,28 +213,34 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   statusBarSurface: { position: 'absolute', top: 0, left: 0, right: 0 },
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
+  header: { paddingHorizontal: 24, marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  intro: { paddingHorizontal: 24, marginBottom: 16 },
   intentRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
+    gap: 4,
+    marginHorizontal: 24,
+    padding: 4,
+    borderRadius: 18,
+    marginTop: 16,
     marginBottom: 14,
   },
+  intentTab: { flex: 1, minHeight: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  areaChips: { paddingHorizontal: 24, gap: 8, paddingBottom: 4 },
+  areaChip: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 6 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    paddingHorizontal: 16,
+    marginHorizontal: 24,
+    paddingLeft: 16,
+    paddingRight: 8,
     minHeight: 60,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  exampleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, paddingTop: 10 },
-  featureSection: { marginTop: 30 },
-  featureProperty: { marginHorizontal: 20 },
+  searchAction: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  featureSection: { marginTop: 24 },
+  featureProperty: { marginHorizontal: 24 },
   featureProject: { marginHorizontal: 20, borderRadius: 20, overflow: 'hidden' },
   featureProjectImage: { width: '100%', height: 250 },
   featureProjectBody: { padding: 20 },

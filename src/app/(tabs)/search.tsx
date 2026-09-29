@@ -178,6 +178,10 @@ export default function SearchScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 8 }}>
+      <View style={styles.searchIntro}>
+        <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>JELAJAHI HUNI</Text>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 4 }]}>Cari dengan caramu.</Text>
+      </View>
       <View style={styles.searchRow}>
         <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <Feather name="search" size={18} color={theme.colors.inkTertiary} />
@@ -188,7 +192,7 @@ export default function SearchScreen() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             onSubmitEditing={() => addSearchHistory(query)}
-            placeholder="Cari lokasi, tipe, atau cicilan"
+            placeholder="Area, rumah, atau kebutuhanmu..."
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
           />
@@ -259,6 +263,16 @@ export default function SearchScreen() {
           ))}
         </View>
       ) : null}
+
+      {searchFocused && !query.trim() ? <View style={[styles.promptCard, { backgroundColor: theme.colors.surface }]}>
+        <Feather name="edit-3" size={17} color={theme.colors.brandInk} />
+        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>Ceritakan tempat yang kamu cari</Text>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>Tulis lokasi, jumlah kamar, atau batas cicilan. Kami akan merangkum kebutuhanmu menjadi filter.</Text>
+        <Pressable onPress={() => { setQuery('rumah 3 kamar dekat ITB cicilan 8 juta'); inputRef.current?.focus(); }} style={[styles.promptExample, { backgroundColor: theme.colors.surfaceSoft }]}>
+          <Text style={[theme.type.caption, { color: theme.colors.inkPrimary, flex: 1 }]}>“Rumah 3 kamar dekat ITB cicilan 8 juta”</Text>
+          <Feather name="arrow-up-right" size={16} color={theme.colors.inkPrimary} />
+        </Pressable>
+      </View> : null}
 
       {activeChips.length > 0 ? (
         <View style={styles.parsedChipRow}>
@@ -433,18 +447,21 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20 },
+  searchIntro: { paddingHorizontal: 24, marginBottom: 16 },
+  searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24 },
   intentRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 14 },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    height: 48,
-    borderRadius: 12,
+    height: 56,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  toggleBtn: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  toggleBtn: { width: 52, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  promptCard: { marginHorizontal: 24, marginTop: 12, padding: 20, borderRadius: 22 },
+  promptExample: { minHeight: 46, paddingHorizontal: 14, borderRadius: 14, flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 8 },
   historyBox: {
     marginHorizontal: 20,
     marginTop: 8,
