@@ -1,6 +1,6 @@
 # Gap fitur Huni
 
-Status pada 28 September 2026. Dokumen audit fitur lama telah diganti karena banyak barisnya sudah tidak sesuai kode. Temuan teknis dan perbaikan audit ada di `audit-2026-09-28.md` dan riwayat Git.
+Status pada 29 September 2026. Dokumen audit fitur lama telah diganti karena banyak barisnya sudah tidak sesuai kode. Temuan teknis dan perbaikan audit ada di `audit-2026-09-28.md`, `audit-2026-09-29.md`, dan riwayat Git.
 
 ## Masih memerlukan sumber atau keputusan produk
 
@@ -10,6 +10,7 @@ Status pada 28 September 2026. Dokumen audit fitur lama telah diganti karena ban
 | Backend live | Migrasi RLS, dua Edge Function admin, secret job, serta jadwal Cron belum diterapkan/diuji di proyek Supabase live. |
 | Workspace tamu | Data tamu kini persisten dan terpisah dari akun. Impor otomatis ke akun belum dibuat karena katalog demo memakai ID `p1` dkk., sedangkan database memakai UUID. |
 | Pencarian | Katalog diunduh penuh; belum ada pagination/cursor untuk inventaris besar. Hierarki lokasi, rent period, sertifikat, dan rent-to-own belum ada pada model. |
+| Peta | Katalog contoh sekarang tampil dengan pin melalui koordinat sementara di aplikasi. Migrasi `0008_seed_coordinates.sql` belum diterapkan ke Supabase live; pin berdekatan pada zoom nasional masih perlu pengelompokan. Listing baru wajib memasok koordinat yang akurat. |
 | Personalisasi lokasi | Waktu tempuh dari tempat favorit dan data POI nyata belum tersedia; sebagian label lokasi pada data demo masih statis. |
 | Notifikasi | Penurunan harga memiliki pipeline server. Pencarian cocok, perubahan listing, promosi proyek, aktivitas shortlist, dan tindak lanjut lead masih berupa preferensi tanpa job pengirim. Hindari mengklaim kategori itu sudah aktif sampai pemicu serta persetujuannya tersedia. |
 | Laporan listing | Laporan kini masuk ke tabel Supabase dengan RLS. Antrean/konsol moderasi dan SLA tindak lanjut masih perlu proses operasional. |

@@ -11,12 +11,15 @@ type Props = ViewProps & { intensity?: number };
  */
 export function GlassSurface({ style, intensity = 40, children, ...rest }: Props) {
   const theme = useTheme();
-  if (Platform.OS === 'web') {
+  if (Platform.OS !== 'ios') {
     return (
       <View
         style={[
           styles.base,
-          { backgroundColor: theme.colors.surfaceGlass, borderColor: theme.colors.border },
+          {
+            backgroundColor: Platform.OS === 'android' ? theme.colors.surface : theme.colors.surfaceGlass,
+            borderColor: theme.colors.borderStrong,
+          },
           style,
         ]}
         {...rest}

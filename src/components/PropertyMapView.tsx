@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants, { AppOwnership } from 'expo-constants';
 import { useTheme } from '../theme/ThemeProvider';
@@ -28,35 +28,84 @@ const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
  */
 export function PropertyMapView({ properties, onSelect }: Props) {
   const theme = useTheme();
+  const [retryKey, setRetryKey] = useState(0);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const mappedProperties = useMemo(
+    () => properties.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.lat !== 0 && p.lng !== 0),
+    [properties]
+  );
+
+  useEffect(() => {
+    if (status !== 'loading') return;
+    const timeout = setTimeout(() => setStatus('failed'), 15000);
+    return () => clearTimeout(timeout);
+  }, [status, retryKey]);
 
   if (Platform.OS === 'web' || isExpoGo) {
     return <MapFallback properties={properties} onSelect={onSelect} theme={theme} />;
   }
 
+  if (mappedProperties.length === 0 && properties.length > 0) {
+    return <MapFallback properties={properties} onSelect={onSelect} theme={theme} noCoordinates />;
+  }
+
+  if (status === 'failed') {
+    return <MapFallback properties={properties} onSelect={onSelect} theme={theme} onRetry={() => {
+      setRetryKey((value) => value + 1);
+      setStatus('loading');
+    }} />;
+  }
+
   return (
-    <MapErrorBoundary fallback={<MapFallback properties={properties} onSelect={onSelect} theme={theme} />}>
-      <MapLibreView properties={properties} onSelect={onSelect} theme={theme} />
+    <MapErrorBoundary key={retryKey} fallback={<MapFallback properties={properties} onSelect={onSelect} theme={theme} />}>
+      <MapLibreView
+        properties={mappedProperties}
+        onSelect={onSelect}
+        theme={theme}
+        onLoad={() => setStatus('ready')}
+        onFail={() => setStatus('failed')}
+      />
+      {status === 'loading' ? (
+        <View pointerEvents="none" style={[styles.loading, { backgroundColor: theme.colors.surfaceSoft }]}>
+          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>Memuat peta…</Text>
+        </View>
+      ) : null}
     </MapErrorBoundary>
   );
 }
 
-function MapLibreView({ properties, onSelect, theme }: Props & { theme: ReturnType<typeof useTheme> }) {
+function MapLibreView({ properties, onSelect, theme, onLoad, onFail }: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
   // Required inline (not top-level) so web/Expo Go never evaluate this native import.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Map, Camera, ViewAnnotation } = require('@maplibre/maplibre-react-native');
+  const { Map, Camera, Marker } = require('@maplibre/maplibre-react-native');
 
-  const center: [number, number] =
-    properties.length > 0 ? [properties[0].lng, properties[0].lat] : [106.8, -6.2];
+  const cameraState = properties.length > 1
+    ? {
+        bounds: [
+          Math.min(...properties.map((p) => p.lng)),
+          Math.min(...properties.map((p) => p.lat)),
+          Math.max(...properties.map((p) => p.lng)),
+          Math.max(...properties.map((p) => p.lat)),
+        ] as [number, number, number, number],
+        padding: { top: 52, right: 52, bottom: 52, left: 52 },
+      }
+    : { center: properties.length ? [properties[0].lng, properties[0].lat] as [number, number] : [117, -2.5] as [number, number], zoom: properties.length ? 12 : 4 };
 
   return (
-    <Map style={StyleSheet.absoluteFill} mapStyle={MAP_STYLE_URL}>
-      <Camera initialViewState={{ center, zoom: properties.length > 0 ? 11 : 4 }} />
+    <Map
+      style={StyleSheet.absoluteFill}
+      mapStyle={MAP_STYLE_URL}
+      androidView="texture"
+      onDidFinishLoadingMap={onLoad}
+      onDidFailLoadingMap={onFail}
+    >
+      <Camera {...cameraState} duration={0} initialViewState={cameraState} />
       {properties.map((p) => (
-        <ViewAnnotation key={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
+        <Marker key={p.id} id={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
           <View style={[styles.pin, { backgroundColor: theme.colors.inkPrimary }]}>
             <Text style={[theme.type.micro, { color: theme.colors.surface }]}>{formatIDR(p.price)}</Text>
           </View>
-        </ViewAnnotation>
+        </Marker>
       ))}
     </Map>
   );
@@ -75,12 +124,15 @@ class MapErrorBoundary extends React.Component<{ children: React.ReactNode; fall
   }
 }
 
-function MapFallback({ properties, onSelect, theme }: Props & { theme: ReturnType<typeof useTheme> }) {
+function MapFallback({ properties, onSelect, theme, onRetry, noCoordinates }: Props & { theme: ReturnType<typeof useTheme>; onRetry?: () => void; noCoordinates?: boolean }) {
   return (
     <View style={[styles.fallback, { backgroundColor: theme.colors.surfaceSoft }]}>
       <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, padding: 16 }]}>
-        Peta interaktif tersedia di build native (development/production). Berikut properti pada area ini:
+        {noCoordinates ? 'Lokasi peta belum tersedia untuk properti ini. Kamu tetap bisa membuka detailnya dari daftar.' : onRetry ? 'Peta belum dapat dimuat. Pilih properti dari daftar atau coba lagi.' : 'Peta interaktif tersedia di build Android/iOS. Berikut properti yang ditemukan:'}
       </Text>
+      {onRetry ? <Pressable onPress={onRetry} style={[styles.retry, { backgroundColor: theme.colors.inkPrimary }]}>
+        <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Coba muat peta</Text>
+      </Pressable> : null}
       {properties.slice(0, 6).map((p) => (
         <Pressable
           key={p.id}
@@ -98,7 +150,9 @@ function MapFallback({ properties, onSelect, theme }: Props & { theme: ReturnTyp
 }
 
 const styles = StyleSheet.create({
-  pin: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  pin: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, minHeight: 36, justifyContent: 'center' },
+  loading: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  retry: { alignSelf: 'flex-start', marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
   fallback: { flex: 1, borderRadius: 20, overflow: 'hidden' },
   fallbackRow: { paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
 });

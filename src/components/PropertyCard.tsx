@@ -12,9 +12,10 @@ import type { Property } from '../data/properties';
 type Props = {
   property: Property;
   onPress: () => void;
+  layout?: 'rail' | 'grid';
 };
 
-export function PropertyCard({ property, onPress }: Props) {
+export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
   const theme = useTheme();
   const isSaved = useAppStore((s) => s.isSaved(property.id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
@@ -22,6 +23,9 @@ export function PropertyCard({ property, onPress }: Props) {
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const topReason = getFitReasons(property, { filters, kprScenarios })[0];
+  const nearbyText = property.nearby?.[0]
+    ? `${property.nearby[0].minutes} menit dari ${property.nearby[0].label.toLowerCase()}`
+    : null;
 
   const hideProperty = () => {
     const msg = `Sembunyikan "${property.title}"? Properti ini tidak akan muncul lagi di hasil pencarian. Kamu bisa menampilkannya lagi dari tab Tersimpan.`;
@@ -47,10 +51,11 @@ export function PropertyCard({ property, onPress }: Props) {
       onLongPress={hideProperty}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: theme.colors.surface, opacity: pressed ? 0.96 : 1 },
+        layout === 'grid' && styles.gridCard,
+        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: pressed ? 0.96 : 1 },
       ]}
     >
-      <View style={styles.mediaWrap}>
+      <View style={[styles.mediaWrap, layout === 'grid' && styles.gridMediaWrap]}>
         <Image source={{ uri: property.images[0] }} style={styles.media} contentFit="cover" transition={200} />
         {property.promotion !== 'normal' ? (
           <View style={[styles.promoTag, { backgroundColor: theme.colors.inkPrimary }]}>
@@ -65,7 +70,9 @@ export function PropertyCard({ property, onPress }: Props) {
             toggleSaved(property.id);
           }}
           hitSlop={10}
-          style={[styles.saveBtn, { backgroundColor: 'rgba(21,21,21,0.45)' }]}
+          accessibilityRole="button"
+          accessibilityLabel={isSaved ? 'Hapus dari tersimpan' : 'Simpan properti'}
+          style={[styles.saveBtn, { backgroundColor: 'rgba(21,21,21,0.62)' }]}
         >
           <Feather name="heart" size={15} color={isSaved ? theme.colors.brand : '#fff'} />
         </Pressable>
@@ -85,9 +92,9 @@ export function PropertyCard({ property, onPress }: Props) {
             {specs.join(' · ')}
           </Text>
         ) : null}
-        {property.nearby?.[0] ? (
+        {nearbyText && topReason?.text !== nearbyText ? (
           <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 6 }]} numberOfLines={1}>
-            {property.nearby[0].minutes} menit dari {property.nearby[0].label.toLowerCase()}
+            {nearbyText}
           </Text>
         ) : null}
         {topReason ? (
@@ -109,12 +116,14 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     borderRadius: 20,
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  gridCard: { width: '100%' },
   mediaWrap: {
     width: '100%',
     height: 170,
-    borderRadius: 20,
   },
+  gridMediaWrap: { height: 210 },
   media: {
     width: '100%',
     height: '100%',
@@ -131,14 +140,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   body: {
-    paddingTop: 10,
+    padding: 14,
   },
   fitPill: {
     alignSelf: 'flex-start',

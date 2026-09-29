@@ -1,4 +1,4 @@
-# DESIGN — [APP_NAME]
+# DESIGN — Huni
 
 **Visual direction:** Premium elegant Apple macOS 27-inspired spatial material language × Meta Muse-style intent interaction × supplied editorial travel/property references  
 **Version:** 3.0  
@@ -10,7 +10,7 @@
 
 ## 1. Design Thesis
 
-[APP_NAME] should feel like a calm, premium place to make a consequential decision — not a classifieds database and not a generic dashboard.
+Huni should feel like a calm, premium place to make a consequential decision — not a classifieds database and not a generic dashboard.
 
 The visual system combines four ideas:
 
@@ -1114,5 +1114,4 @@ External principles to re-check during implementation:
 - Expo Router: https://docs.expo.dev/router/introduction/
 - Expo SDK 57 release notes: https://expo.dev/changelog/sdk-57
 
-The goal is not to reproduce any referenced product. The implementation should express the same qualities — calm hierarchy, refined material depth, image-first browsing, and intent-led interaction — through [APP_NAME]’s own brand system.
-
+The goal is not to reproduce any referenced product. The implementation should express the same qualities — calm hierarchy, refined material depth, image-first browsing, and intent-led interaction — through Huni’s own brand system.

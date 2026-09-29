@@ -15,7 +15,7 @@ on conflict (id) do nothing;
 insert into public.properties (
   id, advertiser_id, title, intent, type, price, price_unit, estimated_installment, previous_price,
   area, city, bedrooms, bathrooms, land_area, building_area, images, promotion, facilities, description,
-  status, last_confirmed_at
+  status, last_confirmed_at, lat, lng
 ) values
   (
     '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001',
@@ -25,7 +25,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80'],
     'featured', array['Carport', 'Taman', 'Keamanan 24 jam'],
     'Hunian nyaman dengan sirkulasi udara baik, dekat kampus dan pusat kuliner Dago.',
-    'active', '2026-09-24'
+    'active', '2026-09-24', -6.8619, 107.6186
   ),
   (
     '10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002',
@@ -35,7 +35,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80'],
     'sponsored', array['Gym', 'Kolam renang', 'Laundry'],
     'Unit siap huni dengan pemandangan kota, akses mudah ke MRT Sudirman.',
-    'active', '2026-09-26'
+    'active', '2026-09-26', -6.2088, 106.8228
   ),
   (
     '10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003',
@@ -45,7 +45,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1602343168117-bb8ffe3e2e9f?auto=format&fit=crop&w=1200&q=80'],
     'premium', array['Kolam renang privat', 'Taman tropis', 'Dapur outdoor'],
     'Villa desain kontemporer dikelilingi sawah, cocok untuk investasi maupun hunian.',
-    'active', '2026-09-20'
+    'active', '2026-09-20', -8.5069, 115.2625
   ),
   (
     '10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000004',
@@ -55,7 +55,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80'],
     'normal', array['WiFi', 'AC', 'Kamar mandi dalam'],
     'Kost putri dengan keamanan ketat, 5 menit jalan kaki ke Kampus ITB Ganesha.',
-    'active', '2026-09-25'
+    'active', '2026-09-25', -6.8915, 107.6107
   ),
   (
     '10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000005',
@@ -65,7 +65,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1481253127861-534498168948?auto=format&fit=crop&w=1200&q=80'],
     'normal', array['Akses jalan utama', 'Area parkir luas'],
     'Cocok untuk kantor atau ritel, berada di jalur utama dengan lalu lintas tinggi.',
-    'active', '2026-09-18'
+    'active', '2026-09-18', -6.1588, 106.9056
   ),
   (
     '10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000006',
@@ -75,7 +75,7 @@ insert into public.properties (
           'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80'],
     'featured', array['Clubhouse', 'Taman bermain', 'Keamanan 24 jam'],
     'Cluster baru dengan konsep hijau, dekat gerbang tol dan sekolah internasional.',
-    'active', '2026-09-27'
+    'active', '2026-09-27', -6.3021, 106.6528
   )
 on conflict (id) do nothing;
 
@@ -86,7 +86,7 @@ insert into public.property_nearby_places (property_id, label, minutes) values
   ('10000000-0000-0000-0000-000000000006', 'Sekolah tersimpan', 6);
 
 insert into public.projects (
-  id, advertiser_id, name, city, area, images, progress_percent, progress_label, facilities, promo
+  id, advertiser_id, name, city, area, images, progress_percent, progress_label, facilities, promo, lat, lng
 ) values
   (
     '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006',
@@ -94,7 +94,7 @@ insert into public.projects (
     array['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80',
           'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80'],
     65, 'Struktur lantai 3 dari 5 selesai', array['Clubhouse', 'Kolam renang', 'Taman bermain', 'Keamanan 24 jam'],
-    'DP 0% untuk 50 unit pertama'
+    'DP 0% untuk 50 unit pertama', -6.3021, 106.6528
   ),
   (
     '20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003',
@@ -102,7 +102,7 @@ insert into public.projects (
     array['https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=1200&q=80',
           'https://images.unsplash.com/photo-1602343168117-bb8ffe3e2e9f?auto=format&fit=crop&w=1200&q=80'],
     100, 'Siap huni', array['Kolam renang privat per unit', 'Taman tropis', 'Keamanan 24 jam'],
-    null
+    null, -8.5069, 115.2625
   )
 on conflict (id) do nothing;
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -8,19 +9,27 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Chip } from '../../components/Chip';
 import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
-import { fetchProperties } from '../../data/repository';
-import { useAppStore } from '../../store/useAppStore';
+import { fetchProperties, fetchProjects } from '../../data/repository';
+import { useAppStore, type SearchIntent } from '../../store/useAppStore';
 import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
 import { getFitReasons } from '../../lib/recommendations';
+import { formatIDR } from '../../lib/format';
 
 const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi', 'Luas terbesar'];
+const INTENTS: { key: SearchIntent; label: string }[] = [
+  { key: 'buy', label: 'Beli' },
+  { key: 'rent', label: 'Sewa' },
+  { key: 'new-projects', label: 'Proyek Baru' },
+];
 const EMPTY_CHIPS = new Set<string>();
 
 export default function SearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ q?: string }>();
+  const { width } = useWindowDimensions();
+  const columns = width >= 700 ? 2 : 1;
+  const params = useLocalSearchParams<{ q?: string; restore?: string }>();
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const filters = useAppStore((s) => s.filters);
@@ -34,11 +43,13 @@ export default function SearchScreen() {
   const clearSearchHistory = useAppStore((s) => s.clearSearchHistory);
   const [searchFocused, setSearchFocused] = useState(false);
   const routeQuery = params.q ?? '';
-  const [queryInput, setQueryInput] = useState({ routeQuery, value: routeQuery });
-  const query = queryInput.routeQuery === routeQuery ? queryInput.value : routeQuery;
-  const setQuery = (value: string) => setQueryInput({ routeQuery, value });
+  const routeKey = `${params.restore ?? ''}:${routeQuery}`;
+  const [queryInput, setQueryInput] = useState({ routeKey, value: routeQuery });
+  const query = queryInput.routeKey === routeKey ? queryInput.value : routeQuery;
+  const setQuery = (value: string) => setQueryInput({ routeKey, value });
   const [sort, setSort] = useState(SORTS[0]);
   const [view, setView] = useState<'list' | 'map'>('list');
+  const lastParsedQuery = useRef<string | null>(null);
   const [chipState, setChipState] = useState<{ query: string; removed: Set<string> }>({ query, removed: new Set() });
   const removedChipKeys = chipState.query === query ? chipState.removed : EMPTY_CHIPS;
   const {
@@ -47,6 +58,9 @@ export default function SearchScreen() {
     isFetching,
     refetch,
   } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const { data: projects = [], error: projectsError, isFetching: fetchingProjects, refetch: refetchProjects } = useQuery({
+    queryKey: ['projects'], queryFn: fetchProjects, enabled: intent === 'new-projects',
+  });
 
   useEffect(() => {
     if (routeQuery) addSearchHistory(routeQuery);
@@ -60,8 +74,10 @@ export default function SearchScreen() {
   );
 
   useEffect(() => {
-    if (!removedChipKeys.has('intent') && parsed.intent) setIntent(parsed.intent);
-  }, [parsed.intent, removedChipKeys, setIntent]);
+    if (lastParsedQuery.current === query) return;
+    lastParsedQuery.current = query;
+    if (intent !== 'new-projects' && !(params.restore && query === routeQuery) && !removedChipKeys.has('intent') && parsed.intent) setIntent(parsed.intent);
+  }, [query, routeQuery, intent, params.restore, parsed.intent, removedChipKeys, setIntent]);
 
   const activeFilterCount =
     filters.types.length +
@@ -126,8 +142,17 @@ export default function SearchScreen() {
     return list;
   }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios, properties]);
 
+  const projectResults = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('id');
+    if (!q) return projects;
+    return projects.filter((project) =>
+      [project.name, project.area, project.city, project.developer]
+        .some((value) => value.toLocaleLowerCase('id').includes(q))
+    );
+  }, [projects, query]);
+
   const saveThisSearch = () => {
-    addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: true });
+    addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: false });
     const msg = 'Pencarian disimpan di workspace kamu.';
     if (Platform.OS === 'web') {
       alert(msg);
@@ -147,23 +172,33 @@ export default function SearchScreen() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             onSubmitEditing={() => addSearchHistory(query)}
-            placeholder='Coba: "rumah 3 kamar dekat ITB cicilan 8 juta"'
+            placeholder="Cari lokasi, tipe, atau cicilan"
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
           />
         </View>
-        <Pressable
+        {intent !== 'new-projects' ? <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Buka filter"
           onPress={() => router.push('/filters')}
           style={[styles.toggleBtn, { backgroundColor: activeFilterCount ? theme.colors.brand : theme.colors.inkPrimary }]}
         >
           <Feather name="sliders" size={18} color={activeFilterCount ? theme.colors.onBrand : theme.colors.surface} />
-        </Pressable>
-        <Pressable
+        </Pressable> : null}
+        {intent !== 'new-projects' ? <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={view === 'list' ? 'Tampilkan peta' : 'Tampilkan daftar'}
           onPress={() => setView(view === 'list' ? 'map' : 'list')}
           style={[styles.toggleBtn, { backgroundColor: theme.colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
         >
           <Feather name={view === 'list' ? 'map' : 'grid'} size={18} color={theme.colors.inkPrimary} />
-        </Pressable>
+        </Pressable> : null}
+      </View>
+
+      <View style={styles.intentRow}>
+        {INTENTS.map((item) => (
+          <Chip key={item.key} label={item.label} selected={intent === item.key} onPress={() => setIntent(item.key)} />
+        ))}
       </View>
 
       {searchFocused && query.trim() && suggestions.length > 0 ? (
@@ -224,42 +259,66 @@ export default function SearchScreen() {
         </View>
       ) : null}
 
-      <FlatList
-        data={SORTS}
+      {intent !== 'new-projects' ? <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(s) => s}
         contentContainerStyle={styles.sortRow}
-        renderItem={({ item }) => <Chip label={item} selected={sort === item} onPress={() => setSort(item)} />}
-        style={{ flexGrow: 0, marginTop: 12 }}
-      />
+        style={{ flexGrow: 0, height: 46, marginTop: 12 }}
+      >
+        {SORTS.map((item) => <Chip key={item} label={item} selected={sort === item} onPress={() => setSort(item)} />)}
+      </ScrollView> : null}
 
       <View style={styles.resultRow}>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
-          {results.length} properti ditemukan
+          {intent === 'new-projects' ? `${projectResults.length} proyek ditemukan` : `${results.length} properti ditemukan`}
         </Text>
         <Pressable onPress={saveThisSearch} hitSlop={8}>
           <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Simpan pencarian</Text>
         </Pressable>
       </View>
 
-      {view === 'map' ? (
+      {intent === 'new-projects' ? (
+        <FlatList
+          data={projectResults}
+          keyExtractor={(project) => project.id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: insets.bottom + 110, gap: 16 }}
+          refreshControl={<RefreshControl refreshing={fetchingProjects} onRefresh={refetchProjects} tintColor={theme.colors.inkTertiary} />}
+          renderItem={({ item }) => (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/project/${item.id}`)}
+              style={[styles.projectCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            >
+              <Image source={{ uri: item.images[0] }} style={styles.projectImage} contentFit="cover" />
+              <View style={styles.projectBody}>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>PROYEK BARU · {item.progressPercent}% SELESAI</Text>
+                <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 5 }]}>{item.name}</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.area}, {item.city}</Text>
+                <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{item.units.length ? `Mulai ${formatIDR(Math.min(...item.units.map((unit) => unit.priceFrom)))}` : 'Harga unit belum tersedia'}</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.developer} · {item.units.length} tipe unit</Text>
+              </View>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 48 }]}>{projectsError ? 'Proyek belum dapat dimuat. Tarik ke bawah untuk mencoba lagi.' : 'Belum ada proyek yang cocok. Coba area atau nama lain.'}</Text>}
+        />
+      ) : view === 'map' ? (
         <View style={styles.mapWrap}>
           <PropertyMapView properties={results} onSelect={(id) => router.push(`/property/${id}`)} />
         </View>
       ) : (
         <FlatList
+          key={`property-columns-${columns}`}
           data={results}
           keyExtractor={(p) => p.id}
-          numColumns={2}
-          columnWrapperStyle={{ gap: 14, paddingHorizontal: 20 }}
-          contentContainerStyle={{ gap: 14, paddingTop: 14, paddingBottom: compareIds.length ? 210 : 140 }}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? { gap: 14 } : undefined}
+          contentContainerStyle={{ gap: 14, paddingHorizontal: 20, paddingTop: 14, paddingBottom: insets.bottom + (compareIds.length >= 2 ? 168 : 110) }}
           refreshControl={
             <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />
           }
           renderItem={({ item }) => (
-            <View style={{ width: '48%' }}>
-              <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
+            <View style={{ flex: 1 }}>
+              <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
               <Pressable onPress={() => toggleCompare(item.id)} style={styles.compareRow}>
                 <View
                   style={[
@@ -299,10 +358,10 @@ export default function SearchScreen() {
         />
       )}
 
-      {compareIds.length >= 2 ? (
+      {intent !== 'new-projects' && compareIds.length >= 2 ? (
         <Pressable
           onPress={() => router.push('/compare')}
-          style={[styles.compareBar, { bottom: insets.bottom + 96, backgroundColor: theme.colors.inkPrimary }]}
+          style={[styles.compareBar, { bottom: insets.bottom + 88, backgroundColor: theme.colors.inkPrimary }]}
         >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
             Bandingkan {compareIds.length} properti →
@@ -315,6 +374,7 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20 },
+  intentRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 14 },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
@@ -337,7 +397,7 @@ const styles = StyleSheet.create({
   retryBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16 },
   parsedChipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 6 },
   parsedChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  sortRow: { paddingHorizontal: 20, gap: 8 },
+  sortRow: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
   resultRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -345,7 +405,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 10,
   },
-  mapWrap: { flex: 1, marginTop: 14, marginHorizontal: 20, borderRadius: 20, overflow: 'hidden', marginBottom: 140 },
+  mapWrap: { flex: 1, marginTop: 14, marginHorizontal: 20, borderRadius: 20, overflow: 'hidden', marginBottom: 110 },
+  projectCard: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  projectImage: { width: '100%', height: 210 },
+  projectBody: { padding: 16 },
   compareRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingLeft: 2 },
   checkbox: { width: 16, height: 16, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth },
   compareBar: {

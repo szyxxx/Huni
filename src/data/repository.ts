@@ -2,6 +2,24 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { properties as mockProperties, getPropertyById as getMockPropertyById, type Property } from './properties';
 import { projects as mockProjects, getProjectById as getMockProjectById, type DevelopmentProject } from './projects';
 
+// The first remote demo catalogue was seeded before coordinates were included.
+// Match only those fixed seed IDs while the backfill migration reaches each environment.
+const seedCoordinates: Record<string, { lat: number; lng: number }> = {
+  '10000000-0000-0000-0000-000000000001': { lat: -6.8619, lng: 107.6186 },
+  '10000000-0000-0000-0000-000000000002': { lat: -6.2088, lng: 106.8228 },
+  '10000000-0000-0000-0000-000000000003': { lat: -8.5069, lng: 115.2625 },
+  '10000000-0000-0000-0000-000000000004': { lat: -6.8915, lng: 107.6107 },
+  '10000000-0000-0000-0000-000000000005': { lat: -6.1588, lng: 106.9056 },
+  '10000000-0000-0000-0000-000000000006': { lat: -6.3021, lng: 106.6528 },
+  '20000000-0000-0000-0000-000000000001': { lat: -6.3021, lng: 106.6528 },
+  '20000000-0000-0000-0000-000000000002': { lat: -8.5069, lng: 115.2625 },
+};
+
+function mapCoordinates(id: string, lat: number | null, lng: number | null) {
+  if (lat != null && lng != null) return { lat, lng };
+  return seedCoordinates[id] ?? { lat: 0, lng: 0 };
+}
+
 type PropertyRow = {
   id: string;
   title: string;
@@ -52,8 +70,7 @@ function mapPropertyRow(row: PropertyRow): Property {
     verification: row.advertisers?.verification ?? 'unverified',
     promotion: row.promotion,
     advertiser: { name: row.advertisers?.name ?? 'Tidak diketahui', isAgency: row.advertisers?.is_agency ?? false, contactPhone: row.advertisers?.contact_phone ?? undefined },
-    lat: row.lat ?? 0,
-    lng: row.lng ?? 0,
+    ...mapCoordinates(row.id, row.lat, row.lng),
     facilities: row.facilities,
     description: row.description,
     lastConfirmed: row.last_confirmed_at,
@@ -132,8 +149,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
       available: u.available,
     })),
     nearby: row.project_nearby_places,
-    lat: row.lat ?? 0,
-    lng: row.lng ?? 0,
+    ...mapCoordinates(row.id, row.lat, row.lng),
   };
 }
 

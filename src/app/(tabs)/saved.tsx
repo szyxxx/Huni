@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -16,9 +16,13 @@ export default function SavedScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const columns = width >= 700 ? 2 : 1;
   const savedIds = useAppStore((s) => s.savedIds);
   const syncError = useAppStore((s) => s.syncError);
   const savedSearches = useAppStore((s) => s.savedSearches);
+  const setIntent = useAppStore((s) => s.setIntent);
+  const setFilters = useAppStore((s) => s.setFilters);
   const removeSavedSearch = useAppStore((s) => s.removeSavedSearch);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const removeKprScenario = useAppStore((s) => s.removeKprScenario);
@@ -62,16 +66,17 @@ export default function SavedScreen() {
       ) : null}
 
       <FlatList
+        key={`saved-columns-${columns}`}
         data={saved}
         keyExtractor={(p) => p.id}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 14, paddingHorizontal: 20 }}
-        contentContainerStyle={{ gap: 14, paddingBottom: 24 }}
+        numColumns={columns}
+        columnWrapperStyle={columns > 1 ? { gap: 14, paddingHorizontal: 20 } : undefined}
+        contentContainerStyle={{ gap: 14, paddingBottom: insets.bottom + 110 }}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />}
         ListHeaderComponent={<SectionHeader title="Properti tersimpan" subtitle={`${saved.length} properti`} />}
         renderItem={({ item }) => (
-          <View style={{ width: '48%' }}>
-            <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
+          <View style={{ flex: 1, paddingHorizontal: columns === 1 ? 20 : 0 }}>
+            <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
           </View>
         )}
         ListEmptyComponent={
@@ -93,7 +98,7 @@ export default function SavedScreen() {
                   keyExtractor={(p) => p.id}
                   contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
                   renderItem={({ item }) => (
-                    <View style={{ width: 160 }}>
+                    <View style={{ width: 240 }}>
                       <PropertyCard property={item} onPress={() => router.push(`/property/${item.id}`)} />
                     </View>
                   )}
@@ -135,12 +140,12 @@ export default function SavedScreen() {
                 <TextInput
                   value={newShortlistName}
                   onChangeText={setNewShortlistName}
-                  placeholder="Nama shortlist baru, mis. Rumah impian kami"
+                  placeholder="Nama shortlist baru"
                   placeholderTextColor={theme.colors.inkTertiary}
                   style={[theme.type.body, { flex: 1, color: theme.colors.inkPrimary }]}
                   onSubmitEditing={addShortlist}
                 />
-                <Pressable onPress={addShortlist} hitSlop={8}>
+                <Pressable onPress={addShortlist} hitSlop={8} style={{ marginLeft: 12 }} accessibilityRole="button" accessibilityLabel="Buat shortlist">
                   <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Buat</Text>
                 </Pressable>
               </View>
@@ -177,7 +182,18 @@ export default function SavedScreen() {
                         Pencarian tersimpan
                       </Text>
                     </View>
-                    <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8}>
+                    <Pressable
+                      onPress={() => {
+                        setIntent(s.intent);
+                        setFilters(s.filters);
+                        router.push({ pathname: '/(tabs)/search', params: { q: s.query, restore: `${s.id}:${Date.now()}` } });
+                      }}
+                      accessibilityRole="button"
+                      style={styles.openSearch}
+                    >
+                      <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Buka</Text>
+                    </Pressable>
+                    <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Hapus pencarian ${s.label}`}>
                       <Feather name="x" size={16} color={theme.colors.inkTertiary} />
                     </Pressable>
                   </View>
@@ -242,6 +258,7 @@ export default function SavedScreen() {
 
 const styles = StyleSheet.create({
   empty: { borderRadius: 20, padding: 28, alignItems: 'center' },
+  openSearch: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

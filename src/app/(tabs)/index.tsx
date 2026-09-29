@@ -168,7 +168,7 @@ export default function HomeScreen() {
                   {proj.developer} · {proj.area}
                 </Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-                  mulai {formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}
+                  {proj.units.length ? `mulai ${formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}` : 'Harga unit belum tersedia'}
                 </Text>
               </View>
             </Pressable>
