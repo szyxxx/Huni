@@ -1,6 +1,20 @@
 # Gap fitur Huni
 
-Status pada 29 September 2026. Dokumen audit fitur lama telah diganti karena banyak barisnya sudah tidak sesuai kode. Temuan teknis dan perbaikan audit ada di `audit-2026-09-28.md`, `audit-2026-09-29.md`, dan riwayat Git.
+Status pada 30 September 2026. Dokumen audit fitur lama telah diganti karena banyak barisnya sudah tidak sesuai kode. Temuan teknis dan perbaikan audit ada di `audit-2026-09-28.md`, `audit-2026-09-29.md`, dan riwayat Git.
+
+## Permintaan v2 Axel (30 Sep) — status
+
+| Item | Status |
+| --- | --- |
+| Redesign premium/Apple-style, layout non-generic | Sudah berjalan sejak sesi sebelumnya (lihat commit "Redesign floating tab navigation", "Refine editorial property discovery…"); belum ditinjau ulang terhadap 2 referensi screenshot Axel secara spesifik. |
+| Ganti nama "Cari" jadi "Explore" | **Selesai** — label tab bar + ikon compass. Nama file tetap `search.tsx`, tidak ada link yang putus. |
+| Intensitas kaca bisa diatur | **Selesai** — Settings > Tampilan, Low/Medium/High, satu token dipakai `GlassSurface` di semua tempat, hormati Reduce Transparency sistem. |
+| Localization id/en menyeluruh | **Baru infrastruktur** — `src/lib/i18n.ts` + saklar bahasa di Settings (device/id/en). Hanya layar Settings yang terpasang; audit string di seluruh app (alert, error, enum, format harga/tanggal) belum dikerjakan — ini masih pekerjaan besar tersendiri. |
+| "Tanya AI" di kolom pencarian | Belum dikerjakan. Rencana: layar describe-kebutuhan (mic + kirim) di atas `intentParser.ts` yang sudah ada, panggilan LLM lewat Supabase Edge Function (kunci `ANTHROPIC_API_KEY` sebagai secret function, bukan di app) dengan fallback ke parser lokal saat function gagal/tidak ada. |
+| Contact Agent & Schedule Tour di detail properti | Belum dikerjakan. Perlu tabel `tour_requests` baru + picker tanggal/waktu + handoff WhatsApp, plus kartu agent dengan "Lihat profil". |
+| 3D gallery / virtual tour (beta) | Belum dikerjakan. Perlu kolom/bucket aset 3D di skema pengiklan, viewer berbasis WebView atau expo-gl/three (supaya Expo Go tidak rusak), label "beta" jelas. |
+| Peta Explore: indikator taman/minimarket/mall/sekolah dsb, muncul hanya saat zoom ≤10km dari properti | Belum dikerjakan. Sumber data: Overpass/OpenStreetMap, sebaiknya di-cache lewat Supabase supaya tidak memukul Overpass langsung dari client. |
+| Rombak mekanisme Bandingkan + halaman Tersimpan jadi satu workspace kohesif | Belum dikerjakan — ini permintaan paling besar; perlu proposal alur baru (koleksi, watch list, hidden, baru dilihat, compare tray persisten, sheet perbandingan dengan highlight best-value) sebelum mulai membangun. |
 
 ## Masih memerlukan sumber atau keputusan produk
 
