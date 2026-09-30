@@ -20,22 +20,26 @@ import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { facilityIcon } from '../../lib/facilityIcon';
 import { logLead } from '../../lib/leads';
+import { useTranslate, useLanguage, type StringKey } from '../../lib/i18n';
 
-type TourTimeSlot = { label: string; hour: number };
+type TourTimeSlot = { labelKey: StringKey; hour: number };
 
 const TOUR_TIME_SLOTS: TourTimeSlot[] = [
-  { label: 'Pagi (09.00)', hour: 9 },
-  { label: 'Siang (12.00)', hour: 12 },
-  { label: 'Sore (15.00)', hour: 15 },
-  { label: 'Malam (18.00)', hour: 18 },
+  { labelKey: 'slotMorning', hour: 9 },
+  { labelKey: 'slotNoon', hour: 12 },
+  { labelKey: 'slotAfternoon', hour: 15 },
+  { labelKey: 'slotEvening', hour: 18 },
 ];
 
-function tourDayOptions() {
-  const labels = ['Hari ini', 'Besok', 'Lusa'];
+const RELATIVE_DAY_KEYS: StringKey[] = ['dayToday', 'dayTomorrow', 'dayAfterTomorrow'];
+
+function tourDayOptions(t: (key: StringKey) => string, lang: 'id' | 'en') {
   return Array.from({ length: 5 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i);
-    const label = labels[i] ?? date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+    const label = RELATIVE_DAY_KEYS[i]
+      ? t(RELATIVE_DAY_KEYS[i])
+      : date.toLocaleDateString(lang === 'en' ? 'en-US' : 'id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
     return { offset: i, date, label };
   });
 }
@@ -43,6 +47,8 @@ function tourDayOptions() {
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const t = useTranslate();
+  const lang = useLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -68,7 +74,7 @@ export default function PropertyDetailScreen() {
     enabled: Boolean(id),
   });
   const { data: allProperties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
-  const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }) : [];
+  const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }, t) : [];
 
   useEffect(() => {
     if (property?.id) addRecentlyViewed(property.id);
@@ -89,10 +95,10 @@ export default function PropertyDetailScreen() {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.canvas }]}>
         <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
-          {propertyError ? 'Properti belum dapat dimuat.' : 'Properti tidak ditemukan.'}
+          {propertyError ? t('propertyLoadError') : t('propertyNotFound')}
         </Text>
         {propertyError ? <Pressable onPress={() => { void refetchProperty(); }} style={{ marginTop: 12 }}>
-          <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>Coba lagi</Text>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.brandInk }]}>{t('retry')}</Text>
         </Pressable> : null}
       </View>
     );
@@ -109,9 +115,10 @@ export default function PropertyDetailScreen() {
   };
   const submitTourRequest = () => {
     const phone = property.advertiser.contactPhone;
-    const days = tourDayOptions();
+    const days = tourDayOptions(t, lang);
     const chosenDay = days.find((d) => d.offset === tourDay);
     if (!chosenDay || !tourTime) return;
+    const timeLabel = t(tourTime.labelKey);
     const scheduledFor = new Date(chosenDay.date);
     scheduledFor.setHours(tourTime.hour, 0, 0, 0);
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -121,15 +128,15 @@ export default function PropertyDetailScreen() {
       sourceSurface: 'property_detail',
       channel: 'tour_request',
       scheduledFor,
-      note: `${chosenDay.label}, ${tourTime.label}`,
+      note: `${chosenDay.label}, ${timeLabel}`,
     });
     const message = encodeURIComponent(
-      `Halo, saya ingin menjadwalkan tur untuk "${property.title}" di Huni pada ${chosenDay.label.toLowerCase()}, ${tourTime.label.toLowerCase()}. Apakah waktu ini tersedia?`
+      `Halo, saya ingin menjadwalkan tur untuk "${property.title}" di Huni pada ${chosenDay.label.toLowerCase()}, ${timeLabel.toLowerCase()}. Apakah waktu ini tersedia?`
     );
     if (phone) {
       Linking.openURL(`https://wa.me/${phone}?text=${message}`).catch(() => {});
     } else {
-      Alert.alert('Permintaan tur terkirim', 'Kami akan meneruskan permintaanmu ke pengiklan.');
+      Alert.alert(t('tourRequestSentTitle'), t('tourRequestSentBody'));
     }
     setTourPickerOpen(false);
     setTourDay(null);
@@ -138,7 +145,7 @@ export default function PropertyDetailScreen() {
   const shareProperty = () => {
     const link = `huni://property/${property.id}`;
     Share.share({
-      message: `Lihat "${property.title}" di Huni: ${formatPriceLine(property.price, property.priceUnit)} — ${link}`,
+      message: `Lihat "${property.title}" di Huni: ${formatPriceLine(property.price, property.priceUnit, lang)} — ${link}`,
       url: link,
     }).catch(() => {});
   };
@@ -151,25 +158,25 @@ export default function PropertyDetailScreen() {
       return;
     }
     if (!supabase) {
-      const message = 'Pelaporan belum tersedia di mode demo.';
+      const message = t('reportNotAvailableDemo');
       if (Platform.OS === 'web') alert(message);
-      else Alert.alert('Belum tersedia', message);
+      else Alert.alert(t('notAvailableTitle'), message);
       return;
     }
     const { error } = await supabase.from('listing_reports').insert({ property_id: property.id, reporter_id: user.id });
-    const title = error ? 'Gagal mengirim laporan' : 'Laporan diterima';
-    const message = error ? error.message : 'Tim kami akan meninjau iklan ini.';
+    const title = error ? t('reportSendFailedTitle') : t('reportReceivedTitle');
+    const message = error ? error.message : t('reportReceivedBody');
     if (Platform.OS === 'web') alert(`${title}\n\n${message}`);
     else Alert.alert(title, message);
   };
   const reportListing = () => {
-    const msg = 'Laporkan iklan ini karena tidak akurat, sudah terjual, atau melanggar aturan?';
+    const msg = t('reportConfirmMsg');
     if (Platform.OS === 'web') {
       if (confirm(msg)) void submitReport();
     } else {
-      Alert.alert('Laporkan iklan', msg, [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Laporkan', style: 'destructive', onPress: () => { void submitReport(); } },
+      Alert.alert(t('reportDialogTitle'), msg, [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('reportAction'), style: 'destructive', onPress: () => { void submitReport(); } },
       ]);
     }
   };
@@ -239,12 +246,12 @@ export default function PropertyDetailScreen() {
           <View style={styles.locationLine}><Feather name="map-pin" size={15} color={theme.colors.inkTertiary} /><Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{property.area}, {property.city}</Text></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
             <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>
-              {formatPriceLine(property.price, property.priceUnit)}
+              {formatPriceLine(property.price, property.priceUnit, lang)}
             </Text>
             {property.previousPrice && property.previousPrice > property.price ? (
               <View style={[styles.dropBadge, { backgroundColor: theme.colors.success }]}>
                 <Text style={[theme.type.micro, { color: '#fff' }]}>
-                  HARGA TURUN
+                  {t('priceDropBadge')}
                 </Text>
               </View>
             ) : null}
@@ -260,7 +267,7 @@ export default function PropertyDetailScreen() {
             >
               <Feather name="bell" size={15} color={isWatchingPrice ? theme.colors.brandInk : theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: isWatchingPrice ? theme.colors.brandInk : theme.colors.inkSecondary }]}>
-                {isWatchingPrice ? 'Memantau harga' : 'Pantau harga'}
+                {isWatchingPrice ? t('watchingPrice') : t('watchPrice')}
               </Text>
             </Pressable>
             <Pressable
@@ -268,14 +275,14 @@ export default function PropertyDetailScreen() {
               style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
             >
               <Feather name="bookmark" size={15} color={theme.colors.inkSecondary} />
-              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Shortlist</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('shortlist')}</Text>
             </Pressable>
             <Pressable
               onPress={() => setTourPickerOpen((v) => !v)}
               style={[styles.pillBtn, { borderColor: tourPickerOpen ? theme.colors.brand : theme.colors.border, backgroundColor: tourPickerOpen ? theme.colors.brandSoft : theme.colors.surface }]}
             >
               <Feather name="calendar" size={15} color={tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary} />
-              <Text style={[theme.type.captionStrong, { color: tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary }]}>Jadwalkan tur</Text>
+              <Text style={[theme.type.captionStrong, { color: tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary }]}>{t('scheduleTour')}</Text>
             </Pressable>
             {property.videoUrl ? (
               <Pressable
@@ -283,16 +290,16 @@ export default function PropertyDetailScreen() {
                 style={[styles.pillBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
               >
                 <Feather name="play-circle" size={14} color={theme.colors.inkSecondary} />
-                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Video</Text>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('video')}</Text>
               </Pressable>
             ) : null}
             {property.virtualTourUrl ? (
               <Pressable
-                onPress={() => router.push(`/virtual-tour/${property.id}`)}
+                onPress={() => router.push(`/virtual-tour/${property.id}` as any)}
                 style={[styles.pillBtn, { borderColor: theme.colors.brand, backgroundColor: theme.colors.brandSoft }]}
               >
                 <Feather name="box" size={14} color={theme.colors.brandInk} />
-                <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Tur virtual · Beta</Text>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{t('virtualTourBeta')}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -301,7 +308,7 @@ export default function PropertyDetailScreen() {
             <View style={[styles.shortlistPicker, { borderColor: theme.colors.border }]}>
               {shortlists.length === 0 ? (
                 <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-                  Belum ada shortlist. Buat dari tab Tersimpan.
+                  {t('noShortlistYet')}
                 </Text>
               ) : (
                 shortlists.map((sl) => (
@@ -315,7 +322,7 @@ export default function PropertyDetailScreen() {
                   >
                     <Text style={[theme.type.body, { color: theme.colors.inkPrimary }]}>{sl.name}</Text>
                     <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-                      {sl.propertyIds.includes(property.id) ? 'Ditambahkan ✓' : `${sl.propertyIds.length} properti`}
+                      {sl.propertyIds.includes(property.id) ? t('addedCheck') : `${sl.propertyIds.length} ${t('propertiesCount')}`}
                     </Text>
                   </Pressable>
                 ))
@@ -325,9 +332,9 @@ export default function PropertyDetailScreen() {
 
           {tourPickerOpen ? (
             <View style={[styles.shortlistPicker, { borderColor: theme.colors.border, padding: 14 }]}>
-              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Pilih hari</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('pickDay')}</Text>
               <View style={styles.tourChipRow}>
-                {tourDayOptions().map((d) => (
+                {tourDayOptions(t, lang).map((d) => (
                   <Pressable
                     key={d.offset}
                     onPress={() => setTourDay(d.offset)}
@@ -340,7 +347,7 @@ export default function PropertyDetailScreen() {
                   </Pressable>
                 ))}
               </View>
-              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 12 }]}>Pilih waktu</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 12 }]}>{t('pickTime')}</Text>
               <View style={styles.tourChipRow}>
                 {TOUR_TIME_SLOTS.map((slot) => (
                   <Pressable
@@ -351,7 +358,7 @@ export default function PropertyDetailScreen() {
                       { borderColor: theme.colors.border, backgroundColor: tourTime?.hour === slot.hour ? theme.colors.inkPrimary : theme.colors.surface },
                     ]}
                   >
-                    <Text style={[theme.type.caption, { color: tourTime?.hour === slot.hour ? theme.colors.surface : theme.colors.inkSecondary }]}>{slot.label}</Text>
+                    <Text style={[theme.type.caption, { color: tourTime?.hour === slot.hour ? theme.colors.surface : theme.colors.inkSecondary }]}>{t(slot.labelKey)}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -364,7 +371,7 @@ export default function PropertyDetailScreen() {
                 ]}
               >
                 <Text style={[theme.type.captionStrong, { color: tourDay !== null && tourTime ? theme.colors.surface : theme.colors.inkTertiary }]}>
-                  Kirim permintaan tur
+                  {t('sendTourRequest')}
                 </Text>
               </Pressable>
             </View>
@@ -376,7 +383,7 @@ export default function PropertyDetailScreen() {
                 <View key={n.label} style={styles.nearbyRow}>
                   <Feather name="navigation" size={14} color={theme.colors.brandInk} />
                   <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
-                    <Text style={{ fontWeight: '600', color: theme.colors.inkPrimary }}>{n.minutes} menit</Text> dari {n.label.toLowerCase()}
+                    <Text style={{ fontWeight: '600', color: theme.colors.inkPrimary }}>{n.minutes} {t('minutesUnit')}</Text> {t('fromPrefix')} {n.label.toLowerCase()}
                   </Text>
                 </View>
               ))}
@@ -387,7 +394,7 @@ export default function PropertyDetailScreen() {
             <Pressable onPress={() => router.push(`/kpr?price=${property.price}&propertyId=${property.id}`)} style={[styles.installmentLink, { backgroundColor: theme.colors.brandSoft }]}>
               <Feather name="pie-chart" size={18} color={theme.colors.brandInk} />
               <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, flex: 1 }]}>
-                Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan
+                {t('estimatedInstallmentPerMonth')} {formatIDR(property.estimatedInstallment)}{t('perMonthSuffix')}
               </Text>
               <Feather name="chevron-right" size={18} color={theme.colors.brandInk} />
             </Pressable>
@@ -395,7 +402,7 @@ export default function PropertyDetailScreen() {
           {fitReasons.length > 0 ? (
             <View style={[styles.fitBanner, { backgroundColor: theme.colors.brandSoft }]}>
               <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>
-                Mengapa ini mungkin cocok untukmu
+                {t('whyThisFits')}
               </Text>
               {fitReasons.map((r) => (
                 <Text key={r.text} style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 4 }]}>
@@ -406,26 +413,26 @@ export default function PropertyDetailScreen() {
           ) : null}
 
           <View style={[styles.specRow, { backgroundColor: theme.colors.surface }]}>
-            {property.bedrooms ? <Spec label="Kamar tidur" value={`${property.bedrooms}`} icon="moon" /> : null}
-            {property.bathrooms ? <Spec label="Kamar mandi" value={`${property.bathrooms}`} icon="droplet" /> : null}
-            {property.landArea ? <Spec label="Luas tanah" value={`${property.landArea} m²`} icon="maximize" /> : null}
-            {property.buildingArea ? <Spec label="Luas bangunan" value={`${property.buildingArea} m²`} icon="layers" /> : null}
+            {property.bedrooms ? <Spec label={t('bedroomsLabel')} value={`${property.bedrooms}`} icon="moon" /> : null}
+            {property.bathrooms ? <Spec label={t('bathroomsLabel')} value={`${property.bathrooms}`} icon="droplet" /> : null}
+            {property.landArea ? <Spec label={t('landAreaLabel')} value={`${property.landArea} m²`} icon="maximize" /> : null}
+            {property.buildingArea ? <Spec label={t('buildingAreaLabel')} value={`${property.buildingArea} m²`} icon="layers" /> : null}
           </View>
 
           {property.images.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRail}>
-            {property.images.slice(0, 5).map((uri, index) => <Pressable key={`${uri}-${index}`} accessibilityRole="button" accessibilityLabel={`Lihat foto ${index + 1}`} onPress={() => router.push(`/gallery/${property.id}?index=${index}`)}>
+            {property.images.slice(0, 5).map((uri, index) => <Pressable key={`${uri}-${index}`} accessibilityRole="button" accessibilityLabel={`${t('viewPhoto')} ${index + 1}`} onPress={() => router.push(`/gallery/${property.id}?index=${index}`)}>
               <Image source={{ uri }} style={styles.galleryThumb} contentFit="cover" />
             </Pressable>)}
           </ScrollView> : null}
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Tentang properti</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>{t('aboutProperty')}</Text>
           <View style={[styles.descriptionPanel, { backgroundColor: theme.colors.surfaceRaised }]}>
             <Text style={[styles.descriptionText, { color: theme.colors.inkPrimary }]}>
               {property.description}
             </Text>
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Fasilitas</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>{t('facilities')}</Text>
           <View style={styles.facilityWrap}>
             {property.facilities.map((f) => (
               <View key={f} style={styles.facilityItem}>
@@ -437,11 +444,11 @@ export default function PropertyDetailScreen() {
             ))}
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>Lokasi</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 30 }]}>{t('location')}</Text>
           {property.verification === 'unverified' ? (
             <View style={[styles.mapPlaceholder, { backgroundColor: theme.colors.surfaceSoft }]}>
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-                Peta lokasi tersembunyi sampai iklan ini diverifikasi
+                {t('locationHiddenUntilVerified')}
               </Text>
             </View>
           ) : (
@@ -451,17 +458,17 @@ export default function PropertyDetailScreen() {
           )}
           {property.verification !== 'unverified' ? (
             <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 6 }]}>
-              Ikon taman, minimarket, mall, tempat makan, dan sekolah muncul saat peta di-zoom cukup dekat.
+              {t('nearbyPlacesHint')}
             </Text>
           ) : null}
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>
-            Diiklankan oleh
+            {t('listedBy')}
           </Text>
           <Pressable
-            onPress={() => router.push(`/agent/${encodeURIComponent(property.advertiser.name)}`)}
+            onPress={() => router.push(`/agent/${encodeURIComponent(property.advertiser.name)}` as any)}
             accessibilityRole="button"
-            accessibilityLabel={`Lihat profil ${property.advertiser.name}`}
+            accessibilityLabel={`${t('viewProfile')} ${property.advertiser.name}`}
             style={[styles.advertiserRow, { borderColor: theme.colors.border }]}
           >
             <View style={[styles.advertiserAvatar, { backgroundColor: theme.colors.inkPrimary }]}>
@@ -474,24 +481,24 @@ export default function PropertyDetailScreen() {
                 {property.advertiser.name}
               </Text>
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>
-                {property.advertiser.isAgency ? 'Agensi properti' : 'Pemilik langsung'} · Terakhir dikonfirmasi{' '}
+                {property.advertiser.isAgency ? t('agencyLabel') : t('directOwnerLabel')} · {t('lastConfirmedPrefix')}{' '}
                 {property.lastConfirmed}
               </Text>
             </View>
-            <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, marginRight: 6 }]}>Lihat profil</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, marginRight: 6 }]}>{t('viewProfile')}</Text>
             <Feather name="chevron-right" size={16} color={theme.colors.inkTertiary} />
           </Pressable>
 
           <Pressable style={styles.reportRow} onPress={reportListing}>
             <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, textDecorationLine: 'underline' }]}>
-              Laporkan iklan ini
+              {t('reportListingAction')}
             </Text>
           </Pressable>
 
           {similar.length ? (
             <View style={{ marginTop: 20 }}>
               <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginBottom: 12 }]}>
-                Properti serupa
+                {t('similarProperties')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
                 {similar.map((p) => (
@@ -505,9 +512,9 @@ export default function PropertyDetailScreen() {
 
       <GlassSurface style={[styles.contactBar, { bottom: insets.bottom + 8 }]} intensity={60}>
         <View style={{ flex: 1 }}>
-          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Harga</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('priceLabel')}</Text>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
-            {formatPriceLine(property.price, property.priceUnit)}
+            {formatPriceLine(property.price, property.priceUnit, lang)}
           </Text>
         </View>
         <Pressable
@@ -519,7 +526,7 @@ export default function PropertyDetailScreen() {
           style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}
         >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            {property.advertiser.contactPhone ? 'Hubungi via WhatsApp' : isSaved ? 'Lihat tersimpan' : 'Simpan untuk nanti'}
+            {property.advertiser.contactPhone ? t('contactViaWhatsApp') : isSaved ? t('viewSaved') : t('saveForLater')}
           </Text>
         </Pressable>
       </GlassSurface>

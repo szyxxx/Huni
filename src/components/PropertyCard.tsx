@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { formatPriceLine } from '../lib/format';
 import { useAppStore } from '../store/useAppStore';
 import { getFitReasons } from '../lib/recommendations';
+import { useTranslate, useLanguage } from '../lib/i18n';
 import type { Property } from '../data/properties';
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
 
 export function PropertyCard({ property, onPress, layout = 'rail', showCompareToggle = false }: Props) {
   const theme = useTheme();
+  const t = useTranslate();
+  const lang = useLanguage();
   const isSaved = useAppStore((s) => s.isSaved(property.id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
@@ -26,20 +29,20 @@ export function PropertyCard({ property, onPress, layout = 'rail', showCompareTo
   const isComparing = compareIds.includes(property.id);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
-  const topReason = getFitReasons(property, { filters, kprScenarios })[0];
+  const topReason = getFitReasons(property, { filters, kprScenarios }, t)[0];
   const nearbyText = property.nearby?.[0]
-    ? `${property.nearby[0].minutes} menit dari ${property.nearby[0].label.toLowerCase()}`
+    ? `${property.nearby[0].minutes} ${t('minutesUnit')} ${t('fromPrefix')} ${property.nearby[0].label.toLowerCase()}`
     : null;
 
   const hideProperty = () => {
-    const msg = `Sembunyikan "${property.title}"? Properti ini tidak akan muncul lagi di hasil pencarian. Kamu bisa menampilkannya lagi dari tab Tersimpan.`;
+    const msg = `${t('hidePropertyConfirmPrefix')} "${property.title}"${t('hidePropertyConfirmSuffix')}`;
     if (Platform.OS === 'web') {
       if (confirm(msg)) toggleHidden(property.id);
       return;
     }
-    Alert.alert('Sembunyikan properti', msg, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Sembunyikan', style: 'destructive', onPress: () => toggleHidden(property.id) },
+    Alert.alert(t('hidePropertyTitle'), msg, [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('hideAction'), style: 'destructive', onPress: () => toggleHidden(property.id) },
     ]);
   };
 
@@ -66,7 +69,7 @@ export function PropertyCard({ property, onPress, layout = 'rail', showCompareTo
         {property.promotion !== 'normal' ? (
           <View style={[styles.promoTag, { backgroundColor: theme.colors.inkPrimary }]}>
             <Text style={[theme.type.micro, { color: theme.colors.surface }]}>
-              {property.promotion === 'sponsored' ? 'DISPONSORI' : property.promotion.toUpperCase()}
+              {property.promotion === 'sponsored' ? t('sponsoredBadge') : property.promotion.toUpperCase()}
             </Text>
           </View>
         ) : null}
@@ -77,7 +80,7 @@ export function PropertyCard({ property, onPress, layout = 'rail', showCompareTo
           }}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel={isSaved ? 'Hapus dari tersimpan' : 'Simpan properti'}
+          accessibilityLabel={isSaved ? t('removeFromSaved') : t('saveProperty')}
           style={[styles.saveBtn, { backgroundColor: 'rgba(21,21,21,0.62)' }]}
         >
           <Feather name="heart" size={15} color={isSaved ? theme.colors.brand : '#fff'} />
@@ -85,7 +88,7 @@ export function PropertyCard({ property, onPress, layout = 'rail', showCompareTo
       </View>
       <View style={[styles.body, layout === 'feature' && styles.featureBody, layout === 'feature' && { backgroundColor: theme.colors.surface, ...theme.shadow.soft }]}>
         <Text style={[layout === 'feature' ? theme.type.title : theme.type.bodyStrong, { color: theme.colors.inkPrimary }]} numberOfLines={1}>
-          {formatPriceLine(property.price, property.priceUnit)}
+          {formatPriceLine(property.price, property.priceUnit, lang)}
         </Text>
         <Text style={[layout === 'feature' ? theme.type.headline : theme.type.caption, { color: theme.colors.inkPrimary, marginTop: layout === 'feature' ? 8 : 2 }]} numberOfLines={layout === 'feature' ? 2 : 1}>
           {property.title}

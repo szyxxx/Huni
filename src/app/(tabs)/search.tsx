@@ -156,7 +156,7 @@ export default function SearchScreen() {
     if (sort === 'recommendation') {
       list = [...list].sort(
         (a, b) =>
-          getFitReasons(b, { filters, kprScenarios }).length - getFitReasons(a, { filters, kprScenarios }).length
+          getFitReasons(b, { filters, kprScenarios }, t).length - getFitReasons(a, { filters, kprScenarios }, t).length
       );
     }
     return list;
