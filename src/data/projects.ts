@@ -16,6 +16,8 @@ export type DevelopmentProject = {
   name: string;
   developer: string;
   developerVerified: boolean;
+  developerConnected?: boolean;
+  developerOwnerId?: string;
   contactPhone?: string;
   city: string;
   area: string;

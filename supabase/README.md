@@ -7,6 +7,12 @@
 3. Opsional: jalankan `seed/seed.sql` untuk katalog contoh. Aplikasi dengan Supabase aktif tidak memakai katalog mock jika query gagal.
 4. Atur Google OAuth, SMS OTP, URL redirect, dan anon key aplikasi sesuai `.env.example`. Kunci service role hanya boleh ada di backend.
 
+## Minat hunian baru
+
+Proyek contoh belum memiliki `advertisers.owner_id` atau nomor kontak resmi. Formulir minat pada proyek tersebut adalah simulasi yang disimpan hanya di perangkat; aplikasi menyatakannya secara eksplisit dan menyediakan opsi menghapusnya.
+
+Untuk mengaktifkan kontak nyata, terapkan migrasi `0012_project_inquiry_access.sql`, lalu tautkan akun developer yang terverifikasi ke `advertisers.owner_id` melalui proses admin. Setelah itu pembeli yang masuk dapat mengirim minat ke tabel `leads` dan pemilik proyek dapat membukanya dari profil developer → **Minat pembeli** dan membalas melalui WhatsApp. Jangan mengisi `owner_id` berdasarkan nama developer saja. Migrasi ini juga menghapus lead beserta detail kontaknya saat akun pembeli dihapus.
+
 ## Fungsi admin
 
 Konfigurasi `config.toml` mematikan pemeriksaan JWT gateway hanya untuk `price-drop-alerts` dan `process-account-deletions`; kedua handler menolak request tanpa header `x-huni-job-secret` yang cocok. Buat dua secret acak yang berbeda di Supabase Edge Function Secrets: `PRICE_DROP_JOB_SECRET` dan `ACCOUNT_DELETION_JOB_SECRET`. Deploy kedua fungsi setelah migrasi diterapkan. `shortlist-invite` tetap memerlukan JWT pengguna.

@@ -124,7 +124,7 @@ type ProjectRow = {
   promo: string | null;
   lat: number | null;
   lng: number | null;
-  advertisers: { name: string; verification: string; contact_phone: string | null } | null;
+  advertisers: { name: string; verification: string; contact_phone: string | null; owner_id: string | null } | null;
   project_units: { id: string; name: string; cluster: string | null; building_area: number; bedrooms: number; bathrooms: number; price_from: number; available: number }[];
   project_nearby_places: { label: string; minutes: number }[];
 };
@@ -135,6 +135,8 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
     name: row.name,
     developer: row.advertisers?.name ?? 'Developer tidak diketahui',
     developerVerified: row.advertisers?.verification === 'official_developer',
+    developerConnected: Boolean(row.advertisers?.owner_id),
+    developerOwnerId: row.advertisers?.owner_id ?? undefined,
     contactPhone: row.advertisers?.contact_phone ?? undefined,
     city: row.city,
     area: row.area,
@@ -160,7 +162,7 @@ function mapProjectRow(row: ProjectRow): DevelopmentProject {
 
 const PROJECT_SELECT = `
   id, name, city, area, images, progress_percent, progress_label, facilities, promo, lat, lng,
-  advertisers ( name, verification, contact_phone ),
+  advertisers ( name, verification, contact_phone, owner_id ),
   project_units ( id, name, cluster, building_area, bedrooms, bathrooms, price_from, available ),
   project_nearby_places ( label, minutes )
 `;

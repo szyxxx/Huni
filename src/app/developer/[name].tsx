@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
 import { fetchProjects } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
+import { useAuth } from '../../auth/AuthProvider';
 
 /**
  * Developer profile (PRD §8.1, listed separately from "Project detail"):
@@ -20,10 +21,12 @@ export default function DeveloperProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { data: projects = [], isLoading } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
 
   const developerProjects = projects.filter((p) => p.developer === developerName);
   const verified = developerProjects.some((p) => p.developerVerified);
+  const isOwner = Boolean(user && developerProjects.some((p) => p.developerOwnerId === user.id));
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
@@ -50,6 +53,10 @@ export default function DeveloperProfileScreen() {
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 8 }]}>
               {isLoading ? 'Memuat…' : `${developerProjects.length} proyek terdaftar di Huni`}
             </Text>
+            {isOwner ? <Pressable onPress={() => router.push({ pathname: '/developer/inbox', params: { name: developerName } })} style={[styles.inboxButton, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Feather name="inbox" size={17} color={theme.colors.surface} />
+              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Lihat minat pembeli</Text>
+            </Pressable> : null}
           </View>
         }
         renderItem={({ item: proj }) => (
@@ -88,4 +95,5 @@ const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   card: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   image: { width: 64, height: 64, borderRadius: 12 },
+  inboxButton: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', paddingHorizontal: 16, minHeight: 44, borderRadius: 12, marginTop: 16 },
 });

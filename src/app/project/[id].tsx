@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -13,6 +13,8 @@ import { fetchProjectById } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 import { facilityIcon } from '../../lib/facilityIcon';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../auth/AuthProvider';
+import { clearDemoProjectInquiry, createProjectInquiry, getDemoProjectInquiry, getMyProjectInquiry, saveDemoProjectInquiry, type InquiryKind } from '../../lib/projectInquiries';
 import type { UnitType } from '../../data/projects';
 
 const NO_CLUSTER = '__none__';
@@ -34,11 +36,24 @@ export default function ProjectDetailScreen() {
   const insets = useSafeAreaInsets();
   const setIntent = useAppStore((s) => s.setIntent);
   const { width } = useWindowDimensions();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [inquiryKind, setInquiryKind] = useState<InquiryKind>('availability');
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [inquiryBusy, setInquiryBusy] = useState(false);
+  const [inquiryError, setInquiryError] = useState<string | null>(null);
   const { data: project, isLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => fetchProjectById(id),
     enabled: Boolean(id),
+  });
+  const { data: myInquiry } = useQuery({
+    queryKey: ['project-inquiry', id, user?.id, project?.developerConnected],
+    queryFn: () => project?.developerConnected ? getMyProjectInquiry(id, user!.id) : getDemoProjectInquiry(id),
+    enabled: Boolean(id && project && (!project.developerConnected || user)),
   });
 
   if (!project) {
@@ -79,6 +94,49 @@ export default function ProjectDetailScreen() {
     const unitDetail = selectedUnit ? `, khususnya ${selectedUnit.name} (mulai ${formatIDR(selectedUnit.priceFrom)})` : '';
     const text = encodeURIComponent(`Halo, saya minta brosur dan info unit untuk hunian "${project.name}"${unitDetail} di Huni. Apakah masih tersedia?`);
     Linking.openURL(`https://wa.me/${project.contactPhone}?text=${text}`).catch(() => {});
+  };
+
+  const openInquiry = () => {
+    if (project.developerConnected && !user) {
+      router.push('/sign-in');
+      return;
+    }
+    if (myInquiry) {
+      setContactName(myInquiry.contactName);
+      setContactPhone(myInquiry.contactPhone);
+      setInquiryKind(myInquiry.kind);
+    }
+    setInquiryError(null);
+    setInquiryOpen(true);
+  };
+
+  const submitInquiry = async () => {
+    if (!selectedUnit || inquiryBusy) return;
+    if (project.developerConnected && !user) {
+      setInquiryError('Masuk ke akunmu sebelum mengirim minat.');
+      return;
+    }
+    setInquiryBusy(true);
+    setInquiryError(null);
+    try {
+      const details = {
+        projectId: project.id,
+        unitName: selectedUnit.name,
+        kind: inquiryKind,
+        contactName,
+        contactPhone,
+      };
+      const saved = project.developerConnected
+        ? await createProjectInquiry(details, user!.id)
+        : await saveDemoProjectInquiry(details);
+      queryClient.setQueryData(['project-inquiry', id, user?.id, project.developerConnected], saved);
+      setInquiryOpen(false);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      setInquiryError(error instanceof Error ? error.message : 'Permintaan belum tersimpan.');
+    } finally {
+      setInquiryBusy(false);
+    }
   };
 
   return (
@@ -134,6 +192,19 @@ export default function ProjectDetailScreen() {
               <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>unit tersedia</Text>
             </View>
           </View>
+
+          {myInquiry ? <View style={[styles.inquiryStatus, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Feather name="check-circle" size={20} color={theme.colors.brandInk} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Minatmu sudah tercatat</Text>
+              <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>
+                {myInquiry.unitName} · {project.developerConnected ? 'Dapat dilihat developer di Huni' : 'Simulasi tersimpan di perangkat ini; belum terkirim'}
+              </Text>
+              {!project.developerConnected ? <Pressable onPress={() => { void clearDemoProjectInquiry(project.id).then(() => queryClient.setQueryData(['project-inquiry', id, user?.id, project.developerConnected], null)); }} style={{ marginTop: 10 }}>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Hapus simulasi</Text>
+              </Pressable> : null}
+            </View>
+          </View> : null}
 
           <View style={[styles.progressPanel, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.progressHeading}>
@@ -205,14 +276,53 @@ export default function ProjectDetailScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={project.contactPhone ? requestBrochure : () => router.push({ pathname: '/developer/[name]', params: { name: project.developer } })}
+          onPress={openInquiry}
           style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}
         >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            {project.contactPhone ? 'Minta brosur' : 'Lihat developer'}
+            {myInquiry ? 'Tanya lagi' : 'Saya tertarik'}
           </Text>
         </Pressable>
       </GlassSurface>
+
+      <Modal visible={inquiryOpen} transparent animationType="slide" onRequestClose={() => setInquiryOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setInquiryOpen(false)} accessibilityLabel="Tutup formulir minat" />
+          <ScrollView style={[styles.inquirySheet, { backgroundColor: theme.colors.surface }]} contentContainerStyle={{ paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
+            <View style={styles.sheetHeading}>
+              <View style={{ flex: 1 }}>
+                <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>Tanyakan hunian ini</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>{project.name} · {selectedUnit?.name ?? 'Tipe unit'}</Text>
+              </View>
+              <Pressable onPress={() => setInquiryOpen(false)} accessibilityRole="button" accessibilityLabel="Tutup" hitSlop={10}>
+                <Feather name="x" size={22} color={theme.colors.inkPrimary} />
+              </Pressable>
+            </View>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 20 }]}>Apa yang ingin kamu ketahui?</Text>
+            <View style={styles.inquiryOptions}>
+              {([['availability', 'Ketersediaan'], ['brochure', 'Brosur & harga'], ['visit', 'Kunjungan']] as const).map(([kind, label]) => (
+                <Pressable key={kind} onPress={() => setInquiryKind(kind)} accessibilityRole="radio" accessibilityState={{ selected: inquiryKind === kind }} style={[styles.inquiryOption, { backgroundColor: inquiryKind === kind ? theme.colors.inkPrimary : theme.colors.surfaceSoft }]}>
+                  <Text style={[theme.type.micro, { color: inquiryKind === kind ? theme.colors.surface : theme.colors.inkPrimary }]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 18 }]}>Nama</Text>
+            <TextInput value={contactName} onChangeText={setContactName} autoComplete="name" placeholder="Nama lengkap" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 14 }]}>Nomor WhatsApp</Text>
+            <TextInput value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="08… atau +62…" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 12 }]}>
+              {project.developerConnected ? 'Dengan mengirim, nama dan nomor ini dapat dilihat developer proyek di Huni.' : 'Ini simulasi. Nama dan nomor disimpan hanya di perangkat ini; developer belum menerima permintaan.'}
+            </Text>
+            {inquiryError ? <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 10 }]}>{inquiryError}</Text> : null}
+            <Pressable onPress={() => { void submitInquiry(); }} disabled={inquiryBusy || !selectedUnit} accessibilityRole="button" style={[styles.inquirySubmit, { backgroundColor: theme.colors.inkPrimary, opacity: inquiryBusy ? 0.65 : 1 }]}>
+              {inquiryBusy ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{project.developerConnected ? 'Kirim minat saya' : 'Simpan simulasi minat'}</Text>}
+            </Pressable>
+            {project.contactPhone ? <Pressable onPress={requestBrochure} style={styles.whatsappLink}>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Atau hubungi developer lewat WhatsApp</Text>
+            </Pressable> : null}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -238,6 +348,15 @@ const styles = StyleSheet.create({
   facilityItem: { width: '47%', minWidth: 138, flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 44 },
   facilityIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   nearbyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  inquiryStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, marginTop: 18 },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  inquirySheet: { flexGrow: 0, maxHeight: '85%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 24, paddingTop: 24 },
+  sheetHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  inquiryOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  inquiryOption: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, minHeight: 40, justifyContent: 'center' },
+  inquiryInput: { height: 52, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, marginTop: 8 },
+  inquirySubmit: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+  whatsappLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   contactBar: {
     position: 'absolute',
     left: 16,
