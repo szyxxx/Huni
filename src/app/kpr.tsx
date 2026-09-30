@@ -14,11 +14,13 @@ import { useAppStore, defaultFilters } from '../store/useAppStore';
 import { fetchPropertyById } from '../data/repository';
 import { logLead } from '../lib/leads';
 import { useAuth } from '../auth/AuthProvider';
+import { useTranslate } from '../lib/i18n';
 
 type Mode = 'program' | 'new' | 'takeover';
 
 export default function KprScreen() {
   const theme = useTheme();
+  const t = useTranslate();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ price?: string; propertyId?: string }>();
@@ -65,7 +67,7 @@ export default function KprScreen() {
     if (phone) {
       Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {});
     } else {
-      Alert.alert('Info program', 'Hubungi agen properti terkait untuk info lebih lanjut, atau simpan simulasi ini terlebih dahulu.');
+      Alert.alert(t('programInfoTitle'), t('contactAgentForMoreInfo'));
     }
   };
   const result = useMemo(
@@ -98,7 +100,7 @@ export default function KprScreen() {
       });
     } else if (mode === 'new') {
       addKprScenario({
-        label: `Simulasi ${formatIDR(price)}`,
+        label: `${t('simulationLabel')} ${formatIDR(price)}`,
         price,
         downPaymentPercent,
         tenorYears,
@@ -107,7 +109,7 @@ export default function KprScreen() {
       });
     } else {
       addKprScenario({
-        label: `Take-over KPR ${formatIDR(remainingPrincipal)}`,
+        label: `${t('takeoverKprLabel')} ${formatIDR(remainingPrincipal)}`,
         price: remainingPrincipal,
         downPaymentPercent: 0,
         tenorYears: remainingTenorYears,
@@ -118,7 +120,7 @@ export default function KprScreen() {
     if (Platform.OS === 'web') {
       router.back();
     } else {
-      Alert.alert('Tersimpan', 'Simulasi disimpan ke workspace kamu.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert(t('savedTitle'), t('simulationSavedToWorkspace'), [{ text: t('ok'), onPress: () => router.back() }]);
     }
   };
 
@@ -129,14 +131,14 @@ export default function KprScreen() {
           <Feather name="arrow-left" size={20} color={theme.colors.inkPrimary} />
         </Pressable>
         <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginLeft: 12 }]}>
-          Simulasi KPR
+          {t('kprSimTitle')}
         </Text>
       </View>
 
       <View style={styles.modeRow}>
-        <Chip label="Program bank" selected={mode === 'program'} onPress={() => setMode('program')} />
-        <Chip label="KPR baru" selected={mode === 'new'} onPress={() => setMode('new')} />
-        <Chip label="Take-over KPR" selected={mode === 'takeover'} onPress={() => setMode('takeover')} />
+        <Chip label={t('modeBankProgram')} selected={mode === 'program'} onPress={() => setMode('program')} />
+        <Chip label={t('modeNewKpr')} selected={mode === 'new'} onPress={() => setMode('new')} />
+        <Chip label={t('modeTakeover')} selected={mode === 'takeover'} onPress={() => setMode('takeover')} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
@@ -144,14 +146,14 @@ export default function KprScreen() {
           <>
             <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
               <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>
-                Angsuran/bulan (fix {selectedProgram.fixYears} tahun pertama)
+                {t('installmentPerMonthFixPrefix')} {selectedProgram.fixYears} {t('yearsFirstSuffix')}
               </Text>
               <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
                 {formatIDR(programResult.fixInstallment)}
               </Text>
               <Pressable onPress={() => setShowRincian((v) => !v)} hitSlop={8} style={{ marginTop: 10 }}>
                 <Text style={[theme.type.captionStrong, { color: theme.colors.brand }]}>
-                  {showRincian ? 'Sembunyikan rincian ▲' : 'Lihat rincian ▾'}
+                  {showRincian ? t('hideDetails') : t('viewDetails')}
                 </Text>
               </Pressable>
             </View>
@@ -160,57 +162,57 @@ export default function KprScreen() {
               <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, paddingVertical: 4 }]}>
                 <View style={styles.rincianRow}>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>
-                    Angsuran/bulan Fix (tahun 1-{selectedProgram.fixYears}, bunga {selectedProgram.fixRatePercent}%)
+                    {t('installmentFixYearsPrefix')}{selectedProgram.fixYears}, {t('interestSuffix')} {selectedProgram.fixRatePercent}%)
                   </Text>
                   <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.fixInstallment)}</Text>
                 </View>
                 <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
                 <View style={styles.rincianRow}>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>
-                    Angsuran/bulan Floating (tahun {selectedProgram.fixYears + 1}-{tenorYears}, estimasi bunga {selectedProgram.estimatedFloatingRatePercent}%)
+                    {t('installmentFloatingYearsPrefix')} {selectedProgram.fixYears + 1}-{tenorYears}, {t('estimatedInterestSuffix')} {selectedProgram.estimatedFloatingRatePercent}%)
                   </Text>
                   <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.floatingInstallment)}</Text>
                 </View>
 
                 <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>
-                  Estimasi pembayaran pertama
+                  {t('firstPaymentEstimate')}
                 </Text>
                 <View style={styles.rincianRow}>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Uang muka</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('downPayment')}</Text>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.downPaymentAmount)}</Text>
                 </View>
                 <View style={styles.rincianRow}>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Angsuran pertama</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('firstInstallment')}</Text>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.fixInstallment)}</Text>
                 </View>
                 <View style={styles.rincianRow}>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Estimasi biaya lainnya</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('estimatedOtherCosts')}</Text>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.estimatedOtherCosts)}</Text>
                 </View>
                 <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
                 <View style={styles.rincianRow}>
-                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Total pembayaran pertama</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{t('totalFirstPayment')}</Text>
                   <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.firstPaymentTotal)}</Text>
                 </View>
 
-                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>Detail pinjaman</Text>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>{t('loanDetail')}</Text>
                 <View style={styles.rincianRow}>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Pinjaman pokok</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('principalLoan')}</Text>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.loanAmount)}</Text>
                 </View>
                 <View style={[styles.rincianRow, { paddingBottom: 14 }]}>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Estimasi bunga pinjaman</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t('estimatedLoanInterest')}</Text>
                   <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.totalEstimatedInterest)}</Text>
                 </View>
               </View>
             ) : null}
 
-            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>Harga properti</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>{t('propertyPrice')}</Text>
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
                 value={formatDigits(priceText)}
-                onChangeText={(t) => setPriceText(t.replace(/[^0-9]/g, ''))}
+                onChangeText={(v) => setPriceText(v.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
@@ -218,23 +220,23 @@ export default function KprScreen() {
 
             <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Stepper
-                label="Uang muka (DP)"
+                label={t('downPaymentDp')}
                 value={`${downPaymentPercent}%  ·  ${formatIDR(price * (downPaymentPercent / 100))}`}
                 onDecrease={() => setDownPaymentPercent((v) => Math.max(5, v - 5))}
                 onIncrease={() => setDownPaymentPercent((v) => Math.min(90, v + 5))}
               />
               <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
               <Stepper
-                label="Jangka waktu KPR"
-                value={`${tenorYears} tahun`}
+                label={t('loanTerm')}
+                value={`${tenorYears} ${t('yearsSuffix')}`}
                 onDecrease={() => setTenorYears((v) => Math.max(selectedProgram.minTenorYears, v - 1))}
                 onIncrease={() => setTenorYears((v) => Math.min(selectedProgram.maxTenorYears, v + 1))}
               />
             </View>
 
-            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>Pilihan program KPR</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>{t('kprProgramChoice')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 10 }}>
-              <Chip label="Semua bank" selected={!bankFilter} onPress={() => setBankFilter(null)} />
+              <Chip label={t('allBanks')} selected={!bankFilter} onPress={() => setBankFilter(null)} />
               {Array.from(new Set(BANK_PROGRAMS.map((p) => p.bankName))).map((bank) => (
                 <Chip key={bank} label={bank} selected={bankFilter === bank} onPress={() => setBankFilter(bank)} />
               ))}
@@ -262,10 +264,10 @@ export default function KprScreen() {
                         ) : null}
                       </View>
                       <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-                        Bunga fix {program.fixRatePercent}% · Masa fix {program.fixYears} tahun
+                        {t('fixInterestLabel')} {program.fixRatePercent}% · {t('fixPeriodLabel')} {program.fixYears} {t('yearsSuffix')}
                       </Text>
                       <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                        Masa kredit {program.minTenorYears}-{program.maxTenorYears} tahun
+                        {t('creditPeriodLabel')} {program.minTenorYears}-{program.maxTenorYears} {t('yearsSuffix')}
                       </Text>
                     </View>
                     <View style={[styles.radio, { borderColor: selected ? theme.colors.brand : theme.colors.border }]}>
@@ -278,12 +280,12 @@ export default function KprScreen() {
           </>
         ) : mode === 'new' ? (
           <>
-            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Harga properti</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('propertyPrice')}</Text>
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
                 value={formatDigits(priceText)}
-                onChangeText={(t) => setPriceText(t.replace(/[^0-9]/g, ''))}
+                onChangeText={(v) => setPriceText(v.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
@@ -291,35 +293,35 @@ export default function KprScreen() {
 
             <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Stepper
-                label="Uang muka"
+                label={t('downPaymentSimple')}
                 value={`${downPaymentPercent}%  ·  ${formatIDR(price * (downPaymentPercent / 100))}`}
                 onDecrease={() => setDownPaymentPercent((v) => Math.max(5, v - 5))}
                 onIncrease={() => setDownPaymentPercent((v) => Math.min(90, v + 5))}
               />
               <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
               <Stepper
-                label="Tenor"
-                value={`${tenorYears} tahun`}
+                label={t('tenor')}
+                value={`${tenorYears} ${t('yearsSuffix')}`}
                 onDecrease={() => setTenorYears((v) => Math.max(1, v - 1))}
                 onIncrease={() => setTenorYears((v) => Math.min(30, v + 1))}
               />
               <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
               <Stepper
-                label="Asumsi suku bunga"
-                value={`${ratePercent.toFixed(1)}% / tahun`}
+                label={t('rateAssumption')}
+                value={`${ratePercent.toFixed(1)}% ${t('perYear')}`}
                 onDecrease={() => setRatePercent((v) => Math.max(2, Math.round((v - 0.25) * 100) / 100))}
                 onIncrease={() => setRatePercent((v) => Math.min(20, Math.round((v + 0.25) * 100) / 100))}
               />
             </View>
 
             <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
-              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>Estimasi cicilan bulanan</Text>
+              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>{t('estimatedMonthlyInstallment')}</Text>
               <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
                 {formatIDR(result.monthlyInstallment)}
               </Text>
               <View style={styles.resultRow}>
-                <ResultItem label="Jumlah pinjaman" value={formatIDR(result.loanAmount)} />
-                <ResultItem label="Total uang muka" value={formatIDR(result.downPaymentAmount)} />
+                <ResultItem label={t('loanAmount')} value={formatIDR(result.loanAmount)} />
+                <ResultItem label={t('totalDownPayment')} value={formatIDR(result.downPaymentAmount)} />
               </View>
             </View>
             <Pressable
@@ -333,35 +335,35 @@ export default function KprScreen() {
               style={[styles.findBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: price > 0 ? 1 : 0.45 }]}
             >
               <Feather name="search" size={18} color={theme.colors.inkPrimary} />
-              <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, flex: 1 }]}>Jelajahi estimasi cicilan serupa</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, flex: 1 }]}>{t('exploreSimilarInstallment')}</Text>
               <Feather name="arrow-right" size={17} color={theme.colors.inkPrimary} />
             </Pressable>
           </>
         ) : (
           <>
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginBottom: 12 }]}>
-              Pindahkan sisa cicilan KPR-mu ke suku bunga baru dan lihat estimasi penghematannya.
+              {t('takeoverIntro')}
             </Text>
 
-            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Sisa pokok pinjaman</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('remainingPrincipal')}</Text>
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
                 value={formatDigits(remainingPrincipalText)}
-                onChangeText={(t) => setRemainingPrincipalText(t.replace(/[^0-9]/g, ''))}
+                onChangeText={(v) => setRemainingPrincipalText(v.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
             </View>
 
             <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>
-              Cicilan saat ini per bulan
+              {t('currentInstallmentPerMonth')}
             </Text>
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
               <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
               <TextInput
                 value={formatDigits(currentInstallmentText)}
-                onChangeText={(t) => setCurrentInstallmentText(t.replace(/[^0-9]/g, ''))}
+                onChangeText={(v) => setCurrentInstallmentText(v.replace(/[^0-9]/g, ''))}
                 keyboardType="number-pad"
                 style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
               />
@@ -369,32 +371,32 @@ export default function KprScreen() {
 
             <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <Stepper
-                label="Sisa tenor"
-                value={`${remainingTenorYears} tahun`}
+                label={t('remainingTenor')}
+                value={`${remainingTenorYears} ${t('yearsSuffix')}`}
                 onDecrease={() => setRemainingTenorYears((v) => Math.max(1, v - 1))}
                 onIncrease={() => setRemainingTenorYears((v) => Math.min(30, v + 1))}
               />
               <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
               <Stepper
-                label="Suku bunga baru"
-                value={`${newRatePercent.toFixed(1)}% / tahun`}
+                label={t('newInterestRate')}
+                value={`${newRatePercent.toFixed(1)}% ${t('perYear')}`}
                 onDecrease={() => setNewRatePercent((v) => Math.max(2, Math.round((v - 0.25) * 100) / 100))}
                 onIncrease={() => setNewRatePercent((v) => Math.min(20, Math.round((v + 0.25) * 100) / 100))}
               />
             </View>
 
             <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
-              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>Cicilan baru per bulan</Text>
+              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>{t('newInstallmentPerMonth')}</Text>
               <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
                 {formatIDR(takeOverResult.newInstallment)}
               </Text>
               <View style={styles.resultRow}>
                 <ResultItem
-                  label="Hemat per bulan"
+                  label={t('monthlySavings')}
                   value={`${takeOverResult.monthlySavings >= 0 ? '' : '-'}${formatIDR(Math.abs(takeOverResult.monthlySavings))}`}
                 />
                 <ResultItem
-                  label="Estimasi hemat total"
+                  label={t('totalEstimatedSavings')}
                   value={`${takeOverResult.totalSavings >= 0 ? '' : '-'}${formatIDR(Math.abs(takeOverResult.totalSavings))}`}
                 />
               </View>
@@ -403,18 +405,17 @@ export default function KprScreen() {
         )}
 
         <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 14, lineHeight: 16 }]}>
-          HASIL INI ADALAH ESTIMASI, BUKAN PERSETUJUAN, PENAWARAN, ATAU KEPUTUSAN PEMBERIAN PINJAMAN DARI BANK
-          MANAPUN. SUKU BUNGA AKTUAL DAPAT BERBEDA TERGANTUNG PRODUK DAN KEBIJAKAN BANK.
+          {t('kprDisclaimer')}
         </Text>
 
         <Pressable disabled={!canSave} onPress={save} style={[styles.saveBtn, { backgroundColor: theme.colors.brand, opacity: canSave ? 1 : 0.45 }]}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.onBrand }]}>Simpan simulasi ini</Text>
+          <Text style={[theme.type.captionStrong, { color: theme.colors.onBrand }]}>{t('saveThisSimulation')}</Text>
         </Pressable>
 
         {mode === 'program' ? (
           <Pressable onPress={askProgram} style={[styles.saveBtn, { marginTop: 10, backgroundColor: theme.colors.inkPrimary, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }]}>
             <Feather name="message-circle" size={16} color={theme.colors.surface} />
-            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Tanyakan program KPR ini</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('askAboutThisProgram')}</Text>
           </Pressable>
         ) : null}
       </ScrollView>
