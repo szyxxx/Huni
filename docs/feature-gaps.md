@@ -15,17 +15,17 @@ Status pada 30 September 2026. Temuan teknis terbaru dan batas verifikasi ada di
 | 3D gallery / virtual tour (beta) | **Selesai** — kolom `virtual_tour_url`/`virtual_tour_kind` + bucket Storage `virtual-tours`, viewer berbasis WebView (`<model-viewer>`/Pannellum, bukan expo-gl/three) di `/virtual-tour/[id]`. 1 properti demo terisi aset placeholder. Alur upload sisi pengiklan belum ada (masih proses admin/backend). |
 | Peta Explore: indikator taman/minimarket/mall/sekolah dsb, muncul hanya saat zoom ≤10km dari properti | **Selesai** — `src/lib/overpass.ts` (Overpass/OSM, di-cache per sel koordinat), aktif di peta Explore (mengikuti pin terpilih) maupun peta detail properti. |
 | Rombak mekanisme Bandingkan + halaman Tersimpan jadi satu workspace kohesif | **Selesai** — `CompareTray` mengambang persisten di Explore & Tersimpan (bukan cuma nempel di satu layar), layar Bandingkan menyorot nilai terbaik per baris + tombol hapus/ganti per kolom. |
-| Simulasi KPR dengan program bank (fix→floating) | **Selesai** — mode "Program bank" baru di `/kpr` (default), `calculateBankProgram()` di `src/lib/kpr.ts` mengamortisasi bunga fix atas tenor penuh lalu menghitung ulang sisa pokok dengan bunga floating estimasi. Data bank (`BANK_PROGRAMS`) masih seed ilustratif, belum ada kemitraan bank nyata — pindah ke tabel Supabase begitu ada program asli. |
+| Simulasi KPR | Mode **KPR baru** dan **Take-over KPR** tersedia. Mode “Program bank” beserta data bank ilustratif dihapus sesuai keputusan produk; hasil tetap estimasi berdasarkan suku bunga yang diisi pengguna. |
 
 ## Masih memerlukan sumber atau keputusan produk
 
 | Area | Gap yang benar-benar tersisa |
 | --- | --- |
 | Rilis | Domain `huni.id`, halaman publik yang terdeploy, tinjauan legal kebijakan privasi, aset Play, akun Play Console, build dan uji perangkat belum diverifikasi. |
-| Backend live | Query baca-saja membuktikan kolom tur virtual dari migrasi `0010` belum ada di Supabase yang dikonfigurasi. Aplikasi memakai fallback katalog sementara; migrasi `0008`–`0011`, RLS, dua Edge Function admin, secret job, serta Cron belum diterapkan/diuji di proyek live. |
+| Backend live | Axel menyatakan migrasi `0008`–`0011` sudah diterapkan. Query baca-saja mengonfirmasi koordinat 6 properti dan 2 proyek, kolom jadwal tur, kolom tur virtual, serta bucket tur virtual dapat diakses untuk daftar objek. Efektivitas kebijakan RLS `0011`, dua Edge Function admin, secret job, dan Cron belum diuji end-to-end. |
 | Workspace tamu | Data tamu kini persisten dan terpisah dari akun. Impor otomatis ke akun belum dibuat karena katalog demo memakai ID `p1` dkk., sedangkan database memakai UUID. |
 | Pencarian | Katalog diunduh penuh; belum ada pagination/cursor untuk inventaris besar. Hierarki lokasi, rent period, sertifikat, dan rent-to-own belum ada pada model. |
-| Peta | Katalog contoh sekarang tampil dengan pin melalui koordinat sementara di aplikasi. Migrasi `0008_seed_coordinates.sql` belum diterapkan ke Supabase live; pin berdekatan pada zoom nasional masih perlu pengelompokan. Listing baru wajib memasok koordinat yang akurat. |
+| Peta | Keenam properti dan dua proyek live kini memiliki koordinat. Pin berdekatan pada zoom nasional masih perlu pengelompokan; listing baru wajib memasok koordinat yang akurat. |
 | Personalisasi lokasi | Waktu tempuh dari tempat favorit dan data POI nyata belum tersedia; sebagian label lokasi pada data demo masih statis. |
 | Notifikasi | Penurunan harga memiliki pipeline server. Pencarian cocok, perubahan listing, promosi proyek, aktivitas shortlist, dan tindak lanjut lead masih berupa preferensi tanpa job pengirim. Hindari mengklaim kategori itu sudah aktif sampai pemicu serta persetujuannya tersedia. |
 | Laporan listing | Laporan kini masuk ke tabel Supabase dengan RLS. Antrean/konsol moderasi dan SLA tindak lanjut masih perlu proses operasional. |
