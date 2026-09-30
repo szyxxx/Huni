@@ -47,6 +47,7 @@ function RootStack() {
         <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
         <Stack.Screen name="property/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="gallery/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="virtual-tour/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="shortlist/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="kpr" options={{ presentation: 'modal' }} />
         <Stack.Screen name="filters" options={{ presentation: 'modal' }} />

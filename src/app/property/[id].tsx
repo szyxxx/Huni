@@ -286,6 +286,15 @@ export default function PropertyDetailScreen() {
                 <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Video</Text>
               </Pressable>
             ) : null}
+            {property.virtualTourUrl ? (
+              <Pressable
+                onPress={() => router.push(`/virtual-tour/${property.id}`)}
+                style={[styles.pillBtn, { borderColor: theme.colors.brand, backgroundColor: theme.colors.brandSoft }]}
+              >
+                <Feather name="box" size={14} color={theme.colors.brandInk} />
+                <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Tur virtual · Beta</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {shortlistPickerOpen ? (

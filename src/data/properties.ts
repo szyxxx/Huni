@@ -19,6 +19,8 @@ export type Property = {
   buildingArea?: number;
   furnished?: boolean;
   videoUrl?: string;
+  virtualTourUrl?: string;
+  virtualTourKind?: 'model3d' | 'panorama';
   images: string[];
   verification: VerificationTier;
   promotion: PromotionTier;
@@ -106,6 +108,11 @@ export const properties: Property[] = [
     bathrooms: 4,
     landArea: 400,
     buildingArea: 280,
+    // Demo-only placeholder asset (Google's public model-viewer sample GLB) to
+    // exercise the viewer end to end — swap for a real advertiser-uploaded
+    // scan once the seller-side upload flow exists.
+    virtualTourUrl: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+    virtualTourKind: 'model3d',
     images: [img('photo-1571003123894-1f0594d2b5d9'), img('photo-1602343168117-bb8ffe3e2e9f')],
     verification: 'official_developer',
     promotion: 'premium',
