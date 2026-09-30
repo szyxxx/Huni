@@ -351,7 +351,7 @@ export default function SearchScreen() {
             ))}
           </ScrollView> : null}
           <View style={styles.mapWrap}>
-            <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapId} />
+            <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapId} showNearbyPlaces />
             {selectedMapProperty ? (
               <View style={[styles.mapPreview, { backgroundColor: theme.colors.surface }]}>
                 <Pressable onPress={() => router.push(`/property/${selectedMapProperty.id}`)} accessibilityRole="button" accessibilityLabel={`Buka ${selectedMapProperty.title}`} style={styles.mapPreviewOpen}>

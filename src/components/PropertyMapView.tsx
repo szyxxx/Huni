@@ -119,7 +119,12 @@ function MapLibreView({
       }
     : { center: properties.length ? [properties[0].lng, properties[0].lat] as [number, number] : [117, -2.5] as [number, number], zoom: properties.length ? 12 : 4 };
 
-  const poiCenter = showNearbyPlaces && properties.length === 1 ? properties[0] : null;
+  // Explore's map carries many pins, so the "center" for the POI radius
+  // is whichever pin is selected; the single-property detail map has an
+  // implicit selection of the one property it shows.
+  const poiCenter = showNearbyPlaces
+    ? properties.find((p) => p.id === selectedId) ?? (properties.length === 1 ? properties[0] : null)
+    : null;
   const showPlaces = Boolean(poiCenter) && zoom >= NEARBY_PLACES_MIN_ZOOM;
 
   useEffect(() => {
