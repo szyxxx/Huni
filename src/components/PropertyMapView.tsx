@@ -1,15 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants, { AppOwnership } from 'expo-constants';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { formatIDR } from '../lib/format';
+import { fetchNearbyPlaces, PLACE_CATEGORY_ICON, type NearbyPlace } from '../lib/overpass';
 import type { Property } from '../data/properties';
 
 type Props = {
   properties: Property[];
   onSelect: (id: string) => void;
   selectedId?: string | null;
+  /**
+   * Show OSM public-place pins (parks, minimarkets, malls, food, schools)
+   * once the camera is zoomed to roughly a 10 km radius or closer. Only
+   * meaningful for a single-property map (property detail) — Explore's
+   * multi-pin browsing map never passes this.
+   */
+  showNearbyPlaces?: boolean;
 };
+
+// zoom 12 ≈ roughly a 10km-wide viewport on a phone screen — the closest
+// whole zoom step to the "10 km radius" threshold Axel asked for. Also
+// matches the single-property map's own default zoom, so places show
+// as soon as you open a property's map and hide again if you zoom out.
+const NEARBY_PLACES_MIN_ZOOM = 12;
 
 // OpenFreeMap's hosted "positron" style — free, no API key, no billing.
 // Closest stock match to DESIGN.md's warm-neutral canvas (light, low-saturation basemap).
@@ -27,7 +42,7 @@ const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
  * native module is missing for any other reason, so this never crashes the
  * Search screen it lives on.
  */
-export function PropertyMapView({ properties, onSelect, selectedId }: Props) {
+export function PropertyMapView({ properties, onSelect, selectedId, showNearbyPlaces }: Props) {
   const theme = useTheme();
   const [retryKey, setRetryKey] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -63,6 +78,7 @@ export function PropertyMapView({ properties, onSelect, selectedId }: Props) {
         properties={mappedProperties}
         onSelect={onSelect}
         selectedId={selectedId}
+        showNearbyPlaces={showNearbyPlaces}
         theme={theme}
         onLoad={() => setStatus('ready')}
         onFail={() => setStatus('failed')}
@@ -76,10 +92,20 @@ export function PropertyMapView({ properties, onSelect, selectedId }: Props) {
   );
 }
 
-function MapLibreView({ properties, onSelect, selectedId, theme, onLoad, onFail }: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
+function MapLibreView({
+  properties,
+  onSelect,
+  selectedId,
+  theme,
+  onLoad,
+  onFail,
+  showNearbyPlaces,
+}: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
   // Required inline (not top-level) so web/Expo Go never evaluate this native import.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Map, Camera, Marker } = require('@maplibre/maplibre-react-native');
+  const [zoom, setZoom] = useState(properties.length > 1 ? 4 : 12);
+  const [places, setPlaces] = useState<NearbyPlace[]>([]);
 
   const cameraState = properties.length > 1
     ? {
@@ -93,6 +119,33 @@ function MapLibreView({ properties, onSelect, selectedId, theme, onLoad, onFail 
       }
     : { center: properties.length ? [properties[0].lng, properties[0].lat] as [number, number] : [117, -2.5] as [number, number], zoom: properties.length ? 12 : 4 };
 
+  const poiCenter = showNearbyPlaces && properties.length === 1 ? properties[0] : null;
+  const showPlaces = Boolean(poiCenter) && zoom >= NEARBY_PLACES_MIN_ZOOM;
+
+  useEffect(() => {
+    if (!poiCenter || !showPlaces) return;
+    let cancelled = false;
+    fetchNearbyPlaces(poiCenter.lat, poiCenter.lng).then((result) => {
+      if (!cancelled) setPlaces(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poiCenter?.id, showPlaces]);
+
+  const handleRegionDidChange = (feature: any) => {
+    // MapLibre RN's region-change event shape; defensive since it's not
+    // guaranteed across native versions — fall back to leaving zoom as-is
+    // rather than crashing the map on an unexpected payload.
+    try {
+      const nextZoom = feature?.properties?.zoomLevel;
+      if (typeof nextZoom === 'number') setZoom(nextZoom);
+    } catch {
+      // ignore — zoom-gated POIs just won't update this time
+    }
+  };
+
   return (
     <Map
       style={StyleSheet.absoluteFill}
@@ -100,8 +153,18 @@ function MapLibreView({ properties, onSelect, selectedId, theme, onLoad, onFail 
       androidView="texture"
       onDidFinishLoadingMap={onLoad}
       onDidFailLoadingMap={onFail}
+      onRegionDidChange={handleRegionDidChange}
     >
       <Camera {...cameraState} duration={0} initialViewState={cameraState} />
+      {showPlaces
+        ? places.map((place) => (
+            <Marker key={place.id} id={place.id} lngLat={[place.lng, place.lat]}>
+              <View style={[styles.poiPin, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <Feather name={PLACE_CATEGORY_ICON[place.category] as any} size={11} color={theme.colors.inkSecondary} />
+              </View>
+            </Marker>
+          ))
+        : null}
       {properties.map((p) => (
         <Marker key={p.id} id={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
           <View style={[styles.pin, { backgroundColor: selectedId === p.id ? theme.colors.brand : theme.colors.inkPrimary }]}>
@@ -153,6 +216,7 @@ function MapFallback({ properties, onSelect, theme, onRetry, noCoordinates }: Pr
 
 const styles = StyleSheet.create({
   pin: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, minHeight: 36, justifyContent: 'center' },
+  poiPin: { width: 24, height: 24, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
   loading: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   retry: { alignSelf: 'flex-start', marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
   fallback: { flex: 1, borderRadius: 20, overflow: 'hidden' },

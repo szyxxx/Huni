@@ -437,9 +437,14 @@ export default function PropertyDetailScreen() {
             </View>
           ) : (
             <View style={[styles.mapPlaceholder, { overflow: 'hidden' }]}>
-              <PropertyMapView properties={[property]} onSelect={() => {}} />
+              <PropertyMapView properties={[property]} onSelect={() => {}} showNearbyPlaces />
             </View>
           )}
+          {property.verification !== 'unverified' ? (
+            <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 6 }]}>
+              Ikon taman, minimarket, mall, tempat makan, dan sekolah muncul saat peta di-zoom cukup dekat.
+            </Text>
+          ) : null}
 
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>
             Diiklankan oleh
