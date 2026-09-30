@@ -10,6 +10,7 @@ import { shadow } from '../../theme/tokens';
 import { Chip } from '../../components/Chip';
 import { PropertyCard } from '../../components/PropertyCard';
 import { PropertyMapView } from '../../components/PropertyMapView';
+import { CompareTray } from '../../components/CompareTray';
 import { fetchProperties, fetchProjects } from '../../data/repository';
 import { useAppStore, defaultFilters, type SearchIntent } from '../../store/useAppStore';
 import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
@@ -38,7 +39,6 @@ export default function SearchScreen() {
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addSavedSearch = useAppStore((s) => s.addSavedSearch);
   const compareIds = useAppStore((s) => s.compareIds);
-  const toggleCompare = useAppStore((s) => s.toggleCompare);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
   const searchHistory = useAppStore((s) => s.searchHistory);
   const addSearchHistory = useAppStore((s) => s.addSearchHistory);
@@ -381,29 +381,7 @@ export default function SearchScreen() {
           }
           renderItem={({ item }) => (
             <View style={{ flex: 1 }}>
-              <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
-              <Pressable
-                onPress={() => toggleCompare(item.id)}
-                style={styles.compareRow}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: compareIds.includes(item.id) }}
-                accessibilityLabel={`Bandingkan ${item.title}`}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    {
-                      borderColor: theme.colors.border,
-                      backgroundColor: compareIds.includes(item.id) ? theme.colors.inkPrimary : 'transparent',
-                    },
-                  ]}
-                >
-                  {compareIds.includes(item.id) ? <Feather name="check" size={13} color={theme.colors.surface} /> : null}
-                </View>
-                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginLeft: 6 }]}>
-                  Bandingkan
-                </Text>
-              </Pressable>
+              <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} showCompareToggle />
             </View>
           )}
           ListEmptyComponent={
@@ -432,16 +410,7 @@ export default function SearchScreen() {
         />
       )}
 
-      {intent !== 'new-projects' && compareIds.length >= 2 ? (
-        <Pressable
-          onPress={() => router.push('/compare')}
-          style={[styles.compareBar, { bottom: insets.bottom + 88, backgroundColor: theme.colors.inkPrimary }]}
-        >
-          <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            Bandingkan {compareIds.length} properti →
-          </Text>
-        </Pressable>
-      ) : null}
+      {intent !== 'new-projects' ? <CompareTray bottom={insets.bottom + 88} /> : null}
     </View>
   );
 }
@@ -494,14 +463,4 @@ const styles = StyleSheet.create({
   projectCard: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   projectImage: { width: '100%', height: 210 },
   projectBody: { padding: 16 },
-  compareRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingLeft: 2 },
-  checkbox: { width: 16, height: 16, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth },
-  compareBar: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
 });

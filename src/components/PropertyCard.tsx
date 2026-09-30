@@ -13,13 +13,17 @@ type Props = {
   property: Property;
   onPress: () => void;
   layout?: 'rail' | 'grid' | 'feature';
+  showCompareToggle?: boolean;
 };
 
-export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
+export function PropertyCard({ property, onPress, layout = 'rail', showCompareToggle = false }: Props) {
   const theme = useTheme();
   const isSaved = useAppStore((s) => s.isSaved(property.id));
   const toggleSaved = useAppStore((s) => s.toggleSaved);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
+  const compareIds = useAppStore((s) => s.compareIds);
+  const toggleCompare = useAppStore((s) => s.toggleCompare);
+  const isComparing = compareIds.includes(property.id);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const topReason = getFitReasons(property, { filters, kprScenarios })[0];
@@ -46,6 +50,7 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
   ].filter(Boolean) as string[];
 
   return (
+    <View>
     <Pressable
       onPress={onPress}
       onLongPress={hideProperty}
@@ -107,6 +112,21 @@ export function PropertyCard({ property, onPress, layout = 'rail' }: Props) {
         ) : null}
       </View>
     </Pressable>
+    {showCompareToggle ? (
+      <Pressable
+        onPress={() => toggleCompare(property.id)}
+        style={styles.compareRow}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isComparing }}
+        accessibilityLabel={`Bandingkan ${property.title}`}
+      >
+        <View style={[styles.checkbox, { borderColor: theme.colors.border, backgroundColor: isComparing ? theme.colors.inkPrimary : 'transparent' }]}>
+          {isComparing ? <Feather name="check" size={13} color={theme.colors.surface} /> : null}
+        </View>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginLeft: 6 }]}>Bandingkan</Text>
+      </Pressable>
+    ) : null}
+    </View>
   );
 }
 
@@ -159,4 +179,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
+  compareRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingLeft: 2, minHeight: 32 },
+  checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
 });

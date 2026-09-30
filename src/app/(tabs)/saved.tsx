@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { PropertyCard } from '../../components/PropertyCard';
+import { CompareTray } from '../../components/CompareTray';
 import { Chip } from '../../components/Chip';
 import { SectionHeader } from '../../components/SectionHeader';
 import { DataStatus } from '../../components/DataStatus';
@@ -95,7 +96,7 @@ export default function SavedScreen() {
         ListHeaderComponent={<SectionHeader title={section === 'properties' ? 'Properti tersimpan' : 'Rencana & koleksi'} subtitle={section === 'properties' ? `${saved.length} properti` : 'Simpan hal penting untuk keputusan berikutnya'} />}
         renderItem={({ item }) => (
           <View style={{ flex: 1, paddingHorizontal: columns === 1 ? 20 : 0 }}>
-            <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} />
+            <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} showCompareToggle />
           </View>
         )}
         ListEmptyComponent={section === 'properties' ?
@@ -276,6 +277,7 @@ export default function SavedScreen() {
           </View>
         }
       />
+      <CompareTray bottom={insets.bottom + 88} />
     </View>
   );
 }
