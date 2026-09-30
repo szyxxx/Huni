@@ -196,6 +196,15 @@ export default function SearchScreen() {
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
           />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tanya AI"
+            onPress={() => router.push('/ai-search')}
+            hitSlop={8}
+            style={[styles.aiBtn, { backgroundColor: theme.colors.brandSoft }]}
+          >
+            <Feather name="zap" size={15} color={theme.colors.brandInk} />
+          </Pressable>
         </View>
         {intent !== 'new-projects' ? <Pressable
           accessibilityRole="button"
@@ -429,6 +438,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   toggleBtn: { width: 52, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  aiBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   promptCard: { marginHorizontal: 24, marginTop: 12, padding: 20, borderRadius: 22 },
   promptExample: { minHeight: 46, paddingHorizontal: 14, borderRadius: 14, flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 8 },
   historyBox: {
