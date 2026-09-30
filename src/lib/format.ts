@@ -20,9 +20,14 @@ export function formatDigits(value: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-export function formatPriceLine(price: number, unit: 'total' | 'month' | 'year'): string {
+/**
+ * Currency stays Rupiah regardless of UI language (this is an
+ * Indonesian real-estate market, not a multi-currency app) — only the
+ * "/bulan"/"/tahun" unit suffix follows the language switch.
+ */
+export function formatPriceLine(price: number, unit: 'total' | 'month' | 'year', lang: 'id' | 'en' = 'id'): string {
   const base = formatIDR(price);
-  if (unit === 'month') return `${base}/bulan`;
-  if (unit === 'year') return `${base}/tahun`;
+  if (unit === 'month') return `${base}/${lang === 'en' ? 'mo' : 'bulan'}`;
+  if (unit === 'year') return `${base}/${lang === 'en' ? 'yr' : 'tahun'}`;
   return base;
 }

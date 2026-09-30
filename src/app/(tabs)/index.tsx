@@ -14,25 +14,27 @@ import { fetchProperties, fetchProjects } from '../../data/repository';
 import { formatIDR } from '../../lib/format';
 import { useAppStore, SearchIntent } from '../../store/useAppStore';
 import { useAuth } from '../../auth/AuthProvider';
+import { useTranslate, type StringKey } from '../../lib/i18n';
 
-function timeGreeting() {
+function timeGreetingKey(): StringKey {
   const hour = new Date().getHours();
-  if (hour < 11) return 'Selamat pagi';
-  if (hour < 15) return 'Selamat siang';
-  if (hour < 19) return 'Selamat sore';
-  return 'Selamat malam';
+  if (hour < 11) return 'greetingMorning';
+  if (hour < 15) return 'greetingAfternoon';
+  if (hour < 19) return 'greetingEvening';
+  return 'greetingNight';
 }
 
-const INTENTS: { key: SearchIntent; label: string }[] = [
-  { key: 'buy', label: 'Beli' },
-  { key: 'rent', label: 'Sewa' },
-  { key: 'new-projects', label: 'Proyek Baru' },
+const INTENTS: { key: SearchIntent; labelKey: StringKey }[] = [
+  { key: 'buy', labelKey: 'intentBuy' },
+  { key: 'rent', labelKey: 'intentRent' },
+  { key: 'new-projects', labelKey: 'intentNewProjects' },
 ];
 
 export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const t = useTranslate();
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const hiddenIds = useAppStore((s) => s.hiddenIds);
@@ -73,22 +75,22 @@ export default function HomeScreen() {
     >
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{timeGreeting()},</Text>
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{firstName || 'selamat datang'}</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>{t(timeGreetingKey())},</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{firstName || t('welcomeGuest')}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Buka profil" onPress={() => router.push('/(tabs)/profile')} style={[styles.avatar, { backgroundColor: theme.colors.inkPrimary }]}>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>{firstName?.charAt(0).toUpperCase() || 'H'}</Text>
         </Pressable>
       </View>
       <View style={styles.intro}>
-        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Ruang untuk hidupmu.</Text>
-        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>Temukan tempat yang terasa tepat.</Text>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>{t('homeIntroTitle')}</Text>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>{t('homeIntroSubtitle')}</Text>
       </View>
 
-      {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
+      {syncError ? <DataStatus message={`${t('workspaceNotSynced')}: ${syncError}`} /> : null}
       {propertiesError || projectsError ? (
         <DataStatus
-          message="Katalog belum dapat dimuat. Periksa koneksi lalu coba lagi."
+          message={t('catalogLoadError')}
           onRetry={() => { void refetchProperties(); void refetchProjects(); }}
         />
       ) : null}
@@ -101,7 +103,7 @@ export default function HomeScreen() {
       >
         <Feather name="search" size={18} color={theme.colors.inkTertiary} />
         <Text style={[theme.type.body, { flex: 1, marginLeft: 10, color: theme.colors.inkSecondary }]} numberOfLines={1}>
-          Cari area atau ceritakan kebutuhanmu
+          {t('homeSearchPlaceholder')}
         </Text>
         <View style={[styles.searchAction, { backgroundColor: theme.colors.inkPrimary }]}><Feather name="arrow-up-right" size={18} color={theme.colors.surface} /></View>
       </Pressable>
@@ -109,13 +111,13 @@ export default function HomeScreen() {
       <View style={[styles.intentRow, { backgroundColor: theme.colors.surfaceSoft }]}>
         {INTENTS.map((item) => (
           <Pressable key={item.key} onPress={() => setIntent(item.key)} accessibilityRole="tab" accessibilityState={{ selected: intent === item.key }} style={[styles.intentTab, intent === item.key && { backgroundColor: theme.colors.inkPrimary }]}>
-            <Text style={[theme.type.captionStrong, { color: intent === item.key ? theme.colors.surface : theme.colors.inkSecondary }]}>{item.label}</Text>
+            <Text style={[theme.type.captionStrong, { color: intent === item.key ? theme.colors.surface : theme.colors.inkSecondary }]}>{t(item.labelKey)}</Text>
           </Pressable>
         ))}
       </View>
 
       {intent !== 'new-projects' && popularAreas.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaChips}>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/search')} style={[styles.areaChip, { backgroundColor: theme.colors.inkPrimary }]}><Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Semua area</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/search')} style={[styles.areaChip, { backgroundColor: theme.colors.inkPrimary }]}><Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('allAreas')}</Text></Pressable>
         {popularAreas.slice(0, 5).map((area) => <Pressable key={area.id} accessibilityRole="button" onPress={() => router.push(`/(tabs)/search?q=${encodeURIComponent(area.name)}`)} style={[styles.areaChip, { backgroundColor: theme.colors.surface }]}>
           <Feather name="map-pin" size={13} color={theme.colors.inkTertiary} /><Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{area.name}</Text>
         </Pressable>)}
@@ -123,12 +125,12 @@ export default function HomeScreen() {
 
       {(intent === 'new-projects' ? featuredProject : featuredProperty) ? (
         <View style={styles.featureSection}>
-          <SectionHeader title={intent === 'new-projects' ? 'Proyek untuk dijelajahi' : 'Pilihan untukmu'} actionLabel="Lihat semua" onAction={() => router.push('/(tabs)/search')} />
+          <SectionHeader title={intent === 'new-projects' ? t('projectsToExplore') : t('recommendedForYou')} actionLabel={t('seeAll')} onAction={() => router.push('/(tabs)/search')} />
           {intent === 'new-projects' && featuredProject ? (
             <Pressable onPress={() => router.push(`/project/${featuredProject.id}`)} style={[styles.featureProject, { backgroundColor: theme.colors.surface }]}>
               <Image source={{ uri: featuredProject.images[0] }} style={styles.featureProjectImage} contentFit="cover" />
               <View style={styles.featureProjectBody}>
-                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>PROYEK BARU · {featuredProject.progressPercent}% SELESAI</Text>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t('newProjectBadge')} · {featuredProject.progressPercent}% {t('percentComplete')}</Text>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 6 }]}>{featuredProject.name}</Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{featuredProject.area}, {featuredProject.city} · {featuredProject.developer}</Text>
               </View>
@@ -146,16 +148,16 @@ export default function HomeScreen() {
         style={[styles.kprBanner, { backgroundColor: theme.colors.inkPrimary }]}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>{intent === 'rent' ? 'Cari sewa sesuai anggaran' : 'Cek keterjangkauan KPR'}</Text>
+          <Text style={[theme.type.bodyStrong, { color: theme.colors.surface }]}>{intent === 'rent' ? t('kprBannerRentTitle') : t('kprBannerBuyTitle')}</Text>
           <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>
-            {intent === 'rent' ? 'Bandingkan biaya bulanan dan tempat yang pas' : 'Cari berdasarkan cicilan bulanan yang nyaman untukmu'}
+            {intent === 'rent' ? t('kprBannerRentSubtitle') : t('kprBannerBuySubtitle')}
           </Text>
         </View>
         <Feather name="arrow-right" size={20} color={theme.colors.brand} />
       </Pressable> : null}
 
       {intent !== 'new-projects' && recommended.length > 1 ? <View style={{ marginTop: 30 }}>
-        <SectionHeader title="Lanjut jelajahi" subtitle="Pilihan lain untuk dibandingkan" />
+        <SectionHeader title={t('continueExploring')} subtitle={t('otherOptionsToCompare')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {recommended.slice(1, 4).map((p) => (
             <PropertyCard key={p.id} property={p} onPress={() => router.push(`/property/${p.id}`)} />
@@ -164,7 +166,7 @@ export default function HomeScreen() {
       </View> : null}
 
       {intent !== 'new-projects' && popularAreas.length > 0 ? <View style={{ marginTop: 28 }}>
-        <SectionHeader title="Jelajahi area" subtitle="Area dengan properti yang tersedia" />
+        <SectionHeader title={t('exploreAreas')} subtitle={t('areasWithAvailableProperties')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {popularAreas.map((a) => (
             <Pressable
@@ -185,7 +187,7 @@ export default function HomeScreen() {
       </View> : null}
 
       {intent === 'buy' ? <View style={{ marginTop: 28 }}>
-        <SectionHeader title="Proyek baru" subtitle="Dari developer resmi terverifikasi" />
+        <SectionHeader title={t('newProjects')} subtitle={t('fromVerifiedDevelopers')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.railPad}>
           {projects.map((proj) => (
             <Pressable key={proj.id} style={styles.projectCard} onPress={() => router.push(`/project/${proj.id}`)}>
@@ -198,7 +200,7 @@ export default function HomeScreen() {
                   {proj.developer} · {proj.area}
                 </Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-                  {proj.units.length ? `mulai ${formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}` : 'Harga unit belum tersedia'}
+                  {proj.units.length ? `${t('startingFrom')} ${formatIDR(Math.min(...proj.units.map((u) => u.priceFrom)))}` : t('unitPriceUnavailable')}
                 </Text>
               </View>
             </Pressable>

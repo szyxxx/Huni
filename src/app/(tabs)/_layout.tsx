@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { GlassSurface } from '../../components/GlassSurface';
+import { useTranslate, type StringKey } from '../../lib/i18n';
 
 type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -14,15 +15,16 @@ const ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   profile: 'user',
 };
 
-const LABELS: Record<string, string> = {
-  index: 'Beranda',
-  search: 'Explore',
-  saved: 'Tersimpan',
-  profile: 'Profil',
+const LABEL_KEYS: Record<string, StringKey> = {
+  index: 'tabHome',
+  search: 'tabExplore',
+  saved: 'tabSaved',
+  profile: 'tabProfile',
 };
 
 function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme();
+  const t = useTranslate();
   const { width } = useWindowDimensions();
   const dockWidth = Math.min(width - 32, 420);
 
@@ -42,7 +44,7 @@ function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBar
         {state.routes.map((route, index) => {
           const active = state.index === index;
           const options = descriptors[route.key].options;
-          const label = LABELS[route.name] ?? route.name;
+          const label = LABEL_KEYS[route.name] ? t(LABEL_KEYS[route.name]) : route.name;
           const icon = ICONS[route.name] ?? 'circle';
 
           const onPress = () => {
