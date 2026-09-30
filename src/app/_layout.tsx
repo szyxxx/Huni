@@ -54,6 +54,7 @@ function RootStack() {
         <Stack.Screen name="account-deletion" options={{ presentation: 'card' }} />
         <Stack.Screen name="privacy-policy" options={{ presentation: 'card' }} />
         <Stack.Screen name="notifications-settings" options={{ presentation: 'card' }} />
+        <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="project/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="developer/[name]" options={{ presentation: 'card' }} />
         <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />

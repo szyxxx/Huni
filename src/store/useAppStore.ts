@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { properties, type PropertyType } from '../data/properties';
 import type { GuestWorkspace } from './guestWorkspace';
@@ -21,6 +22,8 @@ function inviteCodeFor() {
 }
 
 export type SearchIntent = 'buy' | 'rent' | 'new-projects';
+export type GlassIntensity = 'low' | 'medium' | 'high';
+export type Language = 'system' | 'id' | 'en';
 
 export type FilterState = {
   types: PropertyType[];
@@ -168,6 +171,12 @@ type AppState = {
   setSyncError: (message: string | null) => void;
   hydrateFromRemote: (data: RemoteUserData) => void;
   hydrateGuest: (data: GuestWorkspace) => void;
+
+  glassIntensity: GlassIntensity;
+  setGlassIntensity: (level: GlassIntensity) => void;
+
+  language: Language;
+  setLanguage: (language: Language) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -378,4 +387,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       notificationPrefs: data.notificationPrefs,
       intent: data.intent,
     }),
+
+  glassIntensity: 'medium',
+  setGlassIntensity: (level) => set({ glassIntensity: level }),
+
+  language: 'system',
+  setLanguage: (language) => set({ language }),
 }));
+
+const GLASS_INTENSITY_KEY = 'huni:glassIntensity';
+const LANGUAGE_KEY = 'huni:language';
+
+AsyncStorage.getItem(GLASS_INTENSITY_KEY)
+  .then((stored) => {
+    if (stored === 'low' || stored === 'medium' || stored === 'high') {
+      useAppStore.setState({ glassIntensity: stored });
+    }
+  })
+  .catch(() => {});
+
+AsyncStorage.getItem(LANGUAGE_KEY)
+  .then((stored) => {
+    if (stored === 'system' || stored === 'id' || stored === 'en') {
+      useAppStore.setState({ language: stored });
+    }
+  })
+  .catch(() => {});
+
+useAppStore.subscribe((state, prev) => {
+  if (state.glassIntensity !== prev.glassIntensity) {
+    AsyncStorage.setItem(GLASS_INTENSITY_KEY, state.glassIntensity).catch(() => {});
+  }
+  if (state.language !== prev.language) {
+    AsyncStorage.setItem(LANGUAGE_KEY, state.language).catch(() => {});
+  }
+});

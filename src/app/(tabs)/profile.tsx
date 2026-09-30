@@ -12,6 +12,7 @@ const MENU: { title: string; items: { label: string; hint: string; route: string
     { label: 'Simulasi KPR', hint: 'Rencanakan cicilan yang nyaman', route: '/kpr', icon: 'pie-chart' },
   ] },
   { title: 'Akun & privasi', items: [
+    { label: 'Tampilan', hint: 'Intensitas kaca dan bahasa', route: '/settings', icon: 'sliders' },
     { label: 'Notifikasi', hint: 'Pilih kabar yang ingin diterima', route: '/notifications-settings', icon: 'bell' },
     { label: 'Kebijakan privasi', hint: 'Cara data kamu digunakan', route: '/privacy-policy', icon: 'shield' },
     { label: 'Hapus akun', hint: 'Ajukan penghapusan data akun', route: '/account-deletion', icon: 'trash-2' },

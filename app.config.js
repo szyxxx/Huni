@@ -14,6 +14,7 @@ module.exports = {
       'expo-router',
       'expo-location',
       'expo-secure-store',
+      'expo-localization',
       [
         'expo-notifications',
         {

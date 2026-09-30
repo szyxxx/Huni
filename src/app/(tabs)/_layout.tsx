@@ -9,14 +9,14 @@ type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs
 
 const ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   index: 'home',
-  search: 'search',
+  search: 'compass',
   saved: 'heart',
   profile: 'user',
 };
 
 const LABELS: Record<string, string> = {
   index: 'Beranda',
-  search: 'Cari',
+  search: 'Explore',
   saved: 'Tersimpan',
   profile: 'Profil',
 };
