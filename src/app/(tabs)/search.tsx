@@ -16,17 +16,26 @@ import { useAppStore, defaultFilters, type SearchIntent } from '../../store/useA
 import { parseIntentQuery, getEntitySuggestions } from '../../lib/intentParser';
 import { getFitReasons } from '../../lib/recommendations';
 import { formatIDR } from '../../lib/format';
+import { useTranslate, type StringKey } from '../../lib/i18n';
 
-const SORTS = ['Rekomendasi', 'Terbaru', 'Harga terendah', 'Harga tertinggi', 'Luas terbesar'];
-const INTENTS: { key: SearchIntent; label: string }[] = [
-  { key: 'buy', label: 'Beli' },
-  { key: 'rent', label: 'Sewa' },
-  { key: 'new-projects', label: 'Proyek Baru' },
+type SortKey = 'recommendation' | 'newest' | 'priceLow' | 'priceHigh' | 'largestArea';
+const SORTS: { key: SortKey; labelKey: StringKey }[] = [
+  { key: 'recommendation', labelKey: 'sortRecommendation' },
+  { key: 'newest', labelKey: 'sortNewest' },
+  { key: 'priceLow', labelKey: 'sortPriceLow' },
+  { key: 'priceHigh', labelKey: 'sortPriceHigh' },
+  { key: 'largestArea', labelKey: 'sortLargestArea' },
+];
+const INTENTS: { key: SearchIntent; labelKey: StringKey }[] = [
+  { key: 'buy', labelKey: 'intentBuy' },
+  { key: 'rent', labelKey: 'intentRent' },
+  { key: 'new-projects', labelKey: 'intentNewProjects' },
 ];
 const EMPTY_CHIPS = new Set<string>();
 
 export default function SearchScreen() {
   const theme = useTheme();
+  const t = useTranslate();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -52,7 +61,7 @@ export default function SearchScreen() {
   const [queryInput, setQueryInput] = useState({ routeKey, value: routeQuery });
   const query = queryInput.routeKey === routeKey ? queryInput.value : routeQuery;
   const setQuery = (value: string) => setQueryInput({ routeKey, value });
-  const [sort, setSort] = useState(SORTS[0]);
+  const [sort, setSort] = useState<SortKey>(SORTS[0].key);
   const [view, setView] = useState<'list' | 'map'>('list');
   const lastParsedQuery = useRef<string | null>(null);
   const [chipState, setChipState] = useState<{ query: string; removed: Set<string> }>({ query, removed: new Set() });
@@ -139,12 +148,12 @@ export default function SearchScreen() {
     if (filters.specialOfferOnly) list = list.filter((p) => p.promotion !== 'normal');
     if (filters.videoOnly) list = list.filter((p) => Boolean(p.videoUrl));
 
-    if (sort === 'Harga terendah') list = [...list].sort((a, b) => a.price - b.price);
-    if (sort === 'Harga tertinggi') list = [...list].sort((a, b) => b.price - a.price);
-    if (sort === 'Terbaru') list = [...list].sort((a, b) => (a.lastConfirmed < b.lastConfirmed ? 1 : -1));
-    if (sort === 'Luas terbesar')
+    if (sort === 'priceLow') list = [...list].sort((a, b) => a.price - b.price);
+    if (sort === 'priceHigh') list = [...list].sort((a, b) => b.price - a.price);
+    if (sort === 'newest') list = [...list].sort((a, b) => (a.lastConfirmed < b.lastConfirmed ? 1 : -1));
+    if (sort === 'largestArea')
       list = [...list].sort((a, b) => (b.landArea ?? b.buildingArea ?? 0) - (a.landArea ?? a.buildingArea ?? 0));
-    if (sort === 'Rekomendasi') {
+    if (sort === 'recommendation') {
       list = [...list].sort(
         (a, b) =>
           getFitReasons(b, { filters, kprScenarios }).length - getFitReasons(a, { filters, kprScenarios }).length
@@ -167,20 +176,20 @@ export default function SearchScreen() {
   const selectedMapProperty = mapResults.find((property) => property.id === selectedMapId);
 
   const saveThisSearch = () => {
-    addSavedSearch({ label: query.trim() || 'Pencarian tanpa judul', query, intent, filters, notify: false });
-    const msg = 'Pencarian disimpan di workspace kamu.';
+    addSavedSearch({ label: query.trim() || t('savedSearchDefaultLabel'), query, intent, filters, notify: false });
+    const msg = t('searchSavedToast');
     if (Platform.OS === 'web') {
       alert(msg);
     } else {
-      Alert.alert('Pencarian tersimpan', msg);
+      Alert.alert(t('searchSavedTitle'), msg);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 8 }}>
       <View style={styles.searchIntro}>
-        <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>JELAJAHI HUNI</Text>
-        <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 4 }]}>Cari dengan caramu.</Text>
+        <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t('exploreEyebrow')}</Text>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 4 }]}>{t('exploreTitle')}</Text>
       </View>
       <View style={styles.searchRow}>
         <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -192,13 +201,13 @@ export default function SearchScreen() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             onSubmitEditing={() => addSearchHistory(query)}
-            placeholder="Area, rumah, atau kebutuhanmu..."
+            placeholder={t('exploreSearchPlaceholder')}
             placeholderTextColor={theme.colors.inkTertiary}
             style={[theme.type.body, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tanya AI"
+            accessibilityLabel={t('askAi')}
             onPress={() => router.push('/ai-search')}
             hitSlop={8}
             style={[styles.aiBtn, { backgroundColor: theme.colors.brandSoft }]}
@@ -208,7 +217,7 @@ export default function SearchScreen() {
         </View>
         {intent !== 'new-projects' ? <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Buka filter"
+          accessibilityLabel={t('openFilters')}
           onPress={() => router.push('/filters')}
           style={[styles.toggleBtn, { backgroundColor: activeFilterCount ? theme.colors.brand : theme.colors.inkPrimary }]}
         >
@@ -216,7 +225,7 @@ export default function SearchScreen() {
         </Pressable> : null}
         {intent !== 'new-projects' ? <Pressable
           accessibilityRole="button"
-          accessibilityLabel={view === 'list' ? 'Tampilkan peta' : 'Tampilkan daftar'}
+          accessibilityLabel={view === 'list' ? t('showMap') : t('showList')}
           onPress={() => setView(view === 'list' ? 'map' : 'list')}
           style={[styles.toggleBtn, { backgroundColor: theme.colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border }]}
         >
@@ -226,7 +235,7 @@ export default function SearchScreen() {
 
       <View style={styles.intentRow}>
         {INTENTS.map((item) => (
-          <Chip key={item.key} label={item.label} selected={intent === item.key} onPress={() => setIntent(item.key)} />
+          <Chip key={item.key} label={t(item.labelKey)} selected={intent === item.key} onPress={() => setIntent(item.key)} />
         ))}
       </View>
 
@@ -243,7 +252,7 @@ export default function SearchScreen() {
                 {s.label}
               </Text>
               <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginLeft: 8 }]}>
-                {s.kind === 'area' ? 'Area' : 'Kota'}
+                {s.kind === 'area' ? t('entityArea') : t('entityCity')}
               </Text>
             </Pressable>
           ))}
@@ -253,9 +262,9 @@ export default function SearchScreen() {
       {searchFocused && !query.trim() && searchHistory.length > 0 ? (
         <View style={[styles.historyBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <View style={styles.historyHeader}>
-            <Text style={[theme.type.micro, { color: theme.colors.inkTertiary }]}>PENCARIAN TERAKHIR</Text>
+            <Text style={[theme.type.micro, { color: theme.colors.inkTertiary }]}>{t('recentSearches')}</Text>
             <Pressable onPress={clearSearchHistory} hitSlop={8}>
-              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>Hapus</Text>
+              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t('clear')}</Text>
             </Pressable>
           </View>
           {searchHistory.map((h) => (
@@ -275,17 +284,17 @@ export default function SearchScreen() {
 
       {searchFocused && !query.trim() ? <View style={[styles.promptCard, { backgroundColor: theme.colors.surface }]}>
         <Feather name="edit-3" size={17} color={theme.colors.brandInk} />
-        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>Ceritakan tempat yang kamu cari</Text>
-        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>Tulis lokasi, jumlah kamar, atau batas cicilan. Kami akan merangkum kebutuhanmu menjadi filter.</Text>
+        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{t('describePlaceTitle')}</Text>
+        <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>{t('describePlaceHint')}</Text>
         <Pressable onPress={() => { setQuery('rumah 3 kamar dekat ITB cicilan 8 juta'); inputRef.current?.focus(); }} style={[styles.promptExample, { backgroundColor: theme.colors.surfaceSoft }]}>
-          <Text style={[theme.type.caption, { color: theme.colors.inkPrimary, flex: 1 }]}>“Rumah 3 kamar dekat ITB cicilan 8 juta”</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkPrimary, flex: 1 }]}>{t('describePlaceExample')}</Text>
           <Feather name="arrow-up-right" size={16} color={theme.colors.inkPrimary} />
         </Pressable>
       </View> : null}
 
       {activeChips.length > 0 ? (
         <View style={styles.parsedChipRow}>
-          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginRight: 4 }]}>Pencarianmu:</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginRight: 4 }]}>{t('yourSearch')}</Text>
           {activeChips.map((c) => (
             <Pressable
               key={c.key}
@@ -307,15 +316,15 @@ export default function SearchScreen() {
         contentContainerStyle={styles.sortRow}
         style={{ flexGrow: 0, height: 46, marginTop: 12 }}
       >
-        {SORTS.map((item) => <Chip key={item} label={item} selected={sort === item} onPress={() => setSort(item)} />)}
+        {SORTS.map((item) => <Chip key={item.key} label={t(item.labelKey)} selected={sort === item.key} onPress={() => setSort(item.key)} />)}
       </ScrollView> : null}
 
       <View style={styles.resultRow}>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>
-          {intent === 'new-projects' ? `${projectResults.length} proyek ditemukan` : `${results.length} properti ditemukan`}
+          {intent === 'new-projects' ? `${projectResults.length} ${t('projectsFound')}` : `${results.length} ${t('propertiesFound')}`}
         </Text>
         <Pressable onPress={saveThisSearch} hitSlop={8}>
-          <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Simpan pencarian</Text>
+          <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{t('saveSearch')}</Text>
         </Pressable>
       </View>
 
@@ -333,15 +342,15 @@ export default function SearchScreen() {
             >
               <Image source={{ uri: item.images[0] }} style={styles.projectImage} contentFit="cover" />
               <View style={styles.projectBody}>
-                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>PROYEK BARU · {item.progressPercent}% SELESAI</Text>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t('newProjectBadge')} · {item.progressPercent}% {t('percentComplete')}</Text>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 5 }]}>{item.name}</Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.area}, {item.city}</Text>
-                <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{item.units.length ? `Mulai ${formatIDR(Math.min(...item.units.map((unit) => unit.priceFrom)))}` : 'Harga unit belum tersedia'}</Text>
-                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.developer} · {item.units.length} tipe unit</Text>
+                <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{item.units.length ? `${t('startingFrom')} ${formatIDR(Math.min(...item.units.map((unit) => unit.priceFrom)))}` : t('unitPriceUnavailable')}</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.developer} · {item.units.length} {t('unitTypeCount')}</Text>
               </View>
             </Pressable>
           )}
-          ListEmptyComponent={<Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 48 }]}>{projectsError ? 'Proyek belum dapat dimuat. Tarik ke bawah untuk mencoba lagi.' : 'Belum ada proyek yang cocok. Coba area atau nama lain.'}</Text>}
+          ListEmptyComponent={<Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 48 }]}>{projectsError ? t('projectsLoadError') : t('noMatchingProjects')}</Text>}
         />
       ) : view === 'map' ? (
         results.length ? <View style={styles.mapSection}>
@@ -354,7 +363,7 @@ export default function SearchScreen() {
             <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapId} showNearbyPlaces />
             {selectedMapProperty ? (
               <View style={[styles.mapPreview, { backgroundColor: theme.colors.surface }]}>
-                <Pressable onPress={() => router.push(`/property/${selectedMapProperty.id}`)} accessibilityRole="button" accessibilityLabel={`Buka ${selectedMapProperty.title}`} style={styles.mapPreviewOpen}>
+                <Pressable onPress={() => router.push(`/property/${selectedMapProperty.id}`)} accessibilityRole="button" accessibilityLabel={`${t('openPreview')} ${selectedMapProperty.title}`} style={styles.mapPreviewOpen}>
                   <Image source={{ uri: selectedMapProperty.images[0] }} style={styles.mapPreviewImage} contentFit="cover" />
                   <View style={{ flex: 1 }}>
                     <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(selectedMapProperty.price)}</Text>
@@ -363,7 +372,7 @@ export default function SearchScreen() {
                   </View>
                   <Feather name="arrow-up-right" size={18} color={theme.colors.inkPrimary} />
                 </Pressable>
-                <Pressable onPress={() => setSelectedMapId(null)} accessibilityRole="button" accessibilityLabel="Tutup pratinjau" style={styles.previewClose}>
+                <Pressable onPress={() => setSelectedMapId(null)} accessibilityRole="button" accessibilityLabel={t('closePreview')} style={styles.previewClose}>
                   <Feather name="x" size={15} color={theme.colors.inkSecondary} />
                 </Pressable>
               </View>
@@ -371,10 +380,10 @@ export default function SearchScreen() {
           </View>
         </View> : <View style={styles.emptyMap}>
           <Feather name="map-pin" size={24} color={theme.colors.inkTertiary} />
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 14 }]}>Belum ada hasil di peta</Text>
-          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 6, textAlign: 'center' }]}>Perlebar pencarian atau ubah filter untuk melihat area lain.</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 14 }]}>{t('noResultsOnMap')}</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 6, textAlign: 'center' }]}>{t('noResultsOnMapHint')}</Text>
           <Pressable onPress={() => { setQuery(''); setFilters(defaultFilters); }} style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 18 }]}>
-            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Lihat semua properti</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('seeAllProperties')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -396,23 +405,21 @@ export default function SearchScreen() {
           ListEmptyComponent={
             <View style={{ paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 }}>
               <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, textAlign: 'center' }]}>
-                {error ? 'Gagal memuat properti' : 'Tidak ada hasil'}
+                {error ? t('loadPropertiesError') : t('noResults')}
               </Text>
               <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, textAlign: 'center', marginTop: 6 }]}>
-                {error
-                  ? 'Periksa koneksi internetmu, lalu tarik ke bawah untuk mencoba lagi.'
-                  : 'Coba ubah kata kunci atau perlebar area pencarian.'}
+                {error ? t('checkConnectionRetry') : t('tryOtherKeywordOrArea')}
               </Text>
               {error ? (
                 <Pressable
                   onPress={() => refetch()}
                   style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 16 }]}
                 >
-                  <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Coba lagi</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('retry')}</Text>
                 </Pressable>
               ) : null}
               {!error ? <Pressable onPress={() => { setQuery(''); setFilters(defaultFilters); }} style={[styles.retryBtn, { backgroundColor: theme.colors.inkPrimary, marginTop: 16 }]}>
-                <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Lihat semua properti</Text>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('seeAllProperties')}</Text>
               </Pressable> : null}
             </View>
           }
