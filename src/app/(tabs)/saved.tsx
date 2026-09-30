@@ -13,9 +13,11 @@ import { DataStatus } from '../../components/DataStatus';
 import { fetchProperties } from '../../data/repository';
 import { useAppStore } from '../../store/useAppStore';
 import { formatIDR } from '../../lib/format';
+import { useTranslate } from '../../lib/i18n';
 
 export default function SavedScreen() {
   const theme = useTheme();
+  const t = useTranslate();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -52,37 +54,39 @@ export default function SavedScreen() {
     const sl = createShortlist(name);
     setNewShortlistName('');
     if (Platform.OS !== 'web') {
-      Alert.alert('Shortlist dibuat', `"${sl.name}" siap ditambahi properti dan dibagikan.`);
+      Alert.alert(t('shortlistCreatedTitle'), t('shortlistCreatedBody').replace('{name}', sl.name));
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 12 }}>
       <View style={{ paddingHorizontal: 20, marginBottom: 18 }}>
-        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>Keputusanmu</Text>
+        <Text style={[theme.type.title, { color: theme.colors.inkPrimary }]}>{t('yourDecisions')}</Text>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
-          Simpan tempat yang menarik, lalu bandingkan dengan tenang.
+          {t('savedIntro')}
         </Text>
         {saved.length || compareIds.length >= 2 ? <Pressable
           onPress={() => router.push(compareIds.length >= 2 ? '/compare' : '/(tabs)/search')}
           style={[styles.nextStep, { backgroundColor: theme.colors.inkPrimary }]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={[theme.type.micro, { color: theme.colors.brand }]}>LANGKAH BERIKUTNYA</Text>
+            <Text style={[theme.type.micro, { color: theme.colors.brand }]}>{t('nextStepEyebrow')}</Text>
             <Text style={[theme.type.bodyStrong, { color: theme.colors.surface, marginTop: 5 }]}>
-              {compareIds.length >= 2 ? `Bandingkan ${compareIds.length} properti pilihan` : saved.length ? 'Cari pembanding untuk pilihanmu' : 'Mulai dari properti yang kamu suka'}
+              {compareIds.length >= 2
+                ? t('compareSelectedProperties').replace('{n}', String(compareIds.length))
+                : saved.length ? t('findComparisonForPicks') : t('startWithLikedProperty')}
             </Text>
           </View>
           <Feather name="arrow-up-right" size={20} color={theme.colors.surface} />
         </Pressable> : null}
         <View style={styles.sectionTabs}>
-          <Chip label={`Properti (${saved.length})`} selected={section === 'properties'} onPress={() => setSection('properties')} />
-          <Chip label="Rencana & koleksi" selected={section === 'plans'} onPress={() => setSection('plans')} />
+          <Chip label={`${t('propertiesTab')} (${saved.length})`} selected={section === 'properties'} onPress={() => setSection('properties')} />
+          <Chip label={t('plansAndCollections')} selected={section === 'plans'} onPress={() => setSection('plans')} />
         </View>
       </View>
-      {syncError ? <DataStatus message={`Workspace belum tersinkron: ${syncError}`} /> : null}
+      {syncError ? <DataStatus message={`${t('workspaceNotSynced')}: ${syncError}`} /> : null}
       {propertiesError ? (
-        <DataStatus message="Properti tersimpan belum dapat dimuat. Periksa koneksi lalu coba lagi." onRetry={() => { void refetch(); }} />
+        <DataStatus message={t('savedPropertiesLoadError')} onRetry={() => { void refetch(); }} />
       ) : null}
 
       <FlatList
@@ -93,7 +97,7 @@ export default function SavedScreen() {
         columnWrapperStyle={columns > 1 ? { gap: 14, paddingHorizontal: 20 } : undefined}
         contentContainerStyle={{ gap: 14, paddingBottom: insets.bottom + 110 }}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={theme.colors.inkTertiary} />}
-        ListHeaderComponent={<SectionHeader title={section === 'properties' ? 'Properti tersimpan' : 'Rencana & koleksi'} subtitle={section === 'properties' ? `${saved.length} properti` : 'Simpan hal penting untuk keputusan berikutnya'} />}
+        ListHeaderComponent={<SectionHeader title={section === 'properties' ? t('savedProperties') : t('plansAndCollections')} subtitle={section === 'properties' ? `${saved.length} ${t('propertiesCount')}` : t('savePlansHint')} />}
         renderItem={({ item }) => (
           <View style={{ flex: 1, paddingHorizontal: columns === 1 ? 20 : 0 }}>
             <PropertyCard layout="grid" property={item} onPress={() => router.push(`/property/${item.id}`)} showCompareToggle />
@@ -103,10 +107,10 @@ export default function SavedScreen() {
           <View style={[styles.empty, { backgroundColor: theme.colors.surfaceSoft, marginHorizontal: 20 }]}>
             <Feather name="heart" size={24} color={theme.colors.inkSecondary} />
             <Text style={[theme.type.body, { color: theme.colors.inkSecondary, textAlign: 'center' }]}>
-              Belum ada properti tersimpan. Temukan tempat yang ingin kamu pertimbangkan.
+              {t('noSavedPropertiesYet')}
             </Text>
             <Pressable onPress={() => router.push('/(tabs)/search')} style={[styles.exploreBtn, { backgroundColor: theme.colors.inkPrimary }]}>
-              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Jelajahi properti</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('exploreProperties')}</Text>
             </Pressable>
           </View>
         : null}
@@ -114,7 +118,7 @@ export default function SavedScreen() {
           <View style={{ marginTop: 12 }}>
             {section === 'properties' && recent.length > 0 ? (
               <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="Baru dilihat" subtitle={`${recent.length} properti`} />
+                <SectionHeader title={t('recentlyViewed')} subtitle={`${recent.length} ${t('propertiesCount')}`} />
                 <FlatList
                   data={recent}
                   horizontal
@@ -132,7 +136,7 @@ export default function SavedScreen() {
 
             {section === 'properties' && watchedAlerts.length > 0 ? (
               <View style={{ marginBottom: 20 }}>
-                <SectionHeader title="Harga turun" subtitle={`${watchedAlerts.length} properti yang kamu pantau`} />
+                <SectionHeader title={t('priceDrops')} subtitle={`${watchedAlerts.length} ${t('propertiesYouWatch')}`} />
                 <View style={{ paddingHorizontal: 20, gap: 10 }}>
                   {watchedAlerts.map((a) => {
                     const p = getPropertyById(a.propertyId);
@@ -158,20 +162,20 @@ export default function SavedScreen() {
               </View>
             ) : null}
 
-            {section === 'plans' ? <SectionHeader title="Shortlist" subtitle={`${shortlists.length} koleksi`} /> : null}
+            {section === 'plans' ? <SectionHeader title={t('shortlist')} subtitle={`${shortlists.length} ${t('collections')}`} /> : null}
             {section === 'plans' ?
             <View style={{ paddingHorizontal: 20, gap: 10 }}>
               <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                 <TextInput
                   value={newShortlistName}
                   onChangeText={setNewShortlistName}
-                  placeholder="Nama shortlist baru"
+                  placeholder={t('newShortlistPlaceholder')}
                   placeholderTextColor={theme.colors.inkTertiary}
                   style={[theme.type.body, { flex: 1, color: theme.colors.inkPrimary }]}
                   onSubmitEditing={addShortlist}
                 />
-                <Pressable onPress={addShortlist} hitSlop={8} style={{ marginLeft: 12 }} accessibilityRole="button" accessibilityLabel="Buat shortlist">
-                  <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Buat</Text>
+                <Pressable onPress={addShortlist} hitSlop={8} style={{ marginLeft: 12 }} accessibilityRole="button" accessibilityLabel={t('createShortlistLabel')}>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{t('create')}</Text>
                 </Pressable>
               </View>
               {shortlists.map((sl) => (
@@ -183,7 +187,7 @@ export default function SavedScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{sl.name}</Text>
                     <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                      {sl.propertyIds.length} properti · bisa dibagikan
+                      {sl.propertyIds.length} {t('propertiesCount')} · {t('shareable')}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={18} color={theme.colors.inkTertiary} />
@@ -192,10 +196,10 @@ export default function SavedScreen() {
             </View> : null}
 
             {section === 'plans' ? <View style={{ marginTop: 20 }}>
-              <SectionHeader title="Pencarian tersimpan" subtitle={`${savedSearches.length} pencarian`} />
+              <SectionHeader title={t('savedSearchesTitle')} subtitle={`${savedSearches.length} ${t('savedSearchesCount')}`} />
             {savedSearches.length === 0 ? (
               <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, paddingHorizontal: 20 }]}>
-                Simpan pencarian dari layar Cari untuk menggunakannya lagi nanti.
+                {t('noSavedSearchesHint')}
               </Text>
             ) : (
               <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -204,7 +208,7 @@ export default function SavedScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{s.label}</Text>
                       <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                        Pencarian tersimpan
+                        {t('savedSearchLabel')}
                       </Text>
                     </View>
                     <Pressable
@@ -216,9 +220,9 @@ export default function SavedScreen() {
                       accessibilityRole="button"
                       style={styles.openSearch}
                     >
-                      <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Buka</Text>
+                      <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{t('open')}</Text>
                     </Pressable>
-                    <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Hapus pencarian ${s.label}`}>
+                    <Pressable onPress={() => removeSavedSearch(s.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${t('removeSavedSearchLabel')} ${s.label}`}>
                       <Feather name="x" size={16} color={theme.colors.inkTertiary} />
                     </Pressable>
                   </View>
@@ -229,7 +233,7 @@ export default function SavedScreen() {
 
             {section === 'properties' && hidden.length > 0 ? (
               <View style={{ marginTop: 20 }}>
-                <SectionHeader title="Disembunyikan" subtitle={`${hidden.length} properti`} />
+                <SectionHeader title={t('hidden')} subtitle={`${hidden.length} ${t('propertiesCount')}`} />
                 <View style={{ paddingHorizontal: 20, gap: 10 }}>
                   {hidden.map((p) => (
                     <View key={p.id} style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -242,7 +246,7 @@ export default function SavedScreen() {
                         </Text>
                       </View>
                       <Pressable onPress={() => toggleHidden(p.id)} hitSlop={8}>
-                        <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Tampilkan</Text>
+                        <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>{t('show')}</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -251,10 +255,10 @@ export default function SavedScreen() {
             ) : null}
 
             {section === 'plans' ? <View style={{ marginTop: 20 }}>
-              <SectionHeader title="Simulasi KPR" subtitle={`${kprScenarios.length} skenario tersimpan`} />
+              <SectionHeader title={t('kprSimulations')} subtitle={`${kprScenarios.length} ${t('scenariosSaved')}`} />
               {kprScenarios.length === 0 ? (
                 <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, paddingHorizontal: 20 }]}>
-                  Simpan hasil simulasi KPR untuk membandingkannya nanti.
+                  {t('saveKprHint')}
                 </Text>
               ) : (
                 <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -263,7 +267,7 @@ export default function SavedScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{s.label}</Text>
                         <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
-                          {formatIDR(s.monthlyInstallment)}/bulan · DP {s.downPaymentPercent}% · {s.tenorYears} thn
+                          {formatIDR(s.monthlyInstallment)}{t('perMonthSuffix')} · {t('dpAbbrev')} {s.downPaymentPercent}% · {s.tenorYears} {t('yearsAbbrev')}
                         </Text>
                       </View>
                       <Pressable onPress={() => removeKprScenario(s.id)} hitSlop={8}>

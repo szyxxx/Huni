@@ -5,26 +5,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../auth/AuthProvider';
+import { useTranslate, type StringKey } from '../../lib/i18n';
 
-const MENU: { title: string; items: { label: string; hint: string; route: string; icon: React.ComponentProps<typeof Feather>['name'] }[] }[] = [
-  { title: 'Aktivitas', items: [
-    { label: 'Tersimpan', hint: 'Properti, pencarian, dan shortlist', route: '/(tabs)/saved', icon: 'heart' },
-    { label: 'Simulasi KPR', hint: 'Rencanakan cicilan yang nyaman', route: '/kpr', icon: 'pie-chart' },
+type MenuItem = { labelKey: StringKey; hintKey: StringKey; route: string; icon: React.ComponentProps<typeof Feather>['name'] };
+const MENU: { titleKey: StringKey; items: MenuItem[] }[] = [
+  { titleKey: 'menuActivity', items: [
+    { labelKey: 'menuSaved', hintKey: 'menuSavedHint', route: '/(tabs)/saved', icon: 'heart' },
+    { labelKey: 'menuKprSim', hintKey: 'menuKprSimHint', route: '/kpr', icon: 'pie-chart' },
   ] },
-  { title: 'Akun & privasi', items: [
-    { label: 'Tampilan', hint: 'Intensitas kaca dan bahasa', route: '/settings', icon: 'sliders' },
-    { label: 'Notifikasi', hint: 'Pilih kabar yang ingin diterima', route: '/notifications-settings', icon: 'bell' },
-    { label: 'Kebijakan privasi', hint: 'Cara data kamu digunakan', route: '/privacy-policy', icon: 'shield' },
-    { label: 'Hapus akun', hint: 'Ajukan penghapusan data akun', route: '/account-deletion', icon: 'trash-2' },
+  { titleKey: 'menuAccountPrivacy', items: [
+    { labelKey: 'menuAppearance', hintKey: 'menuAppearanceHint', route: '/settings', icon: 'sliders' },
+    { labelKey: 'menuNotifications', hintKey: 'menuNotificationsHint', route: '/notifications-settings', icon: 'bell' },
+    { labelKey: 'menuPrivacyPolicy', hintKey: 'menuPrivacyPolicyHint', route: '/privacy-policy', icon: 'shield' },
+    { labelKey: 'menuDeleteAccount', hintKey: 'menuDeleteAccountHint', route: '/account-deletion', icon: 'trash-2' },
   ] },
 ];
 
 export default function ProfileScreen() {
   const theme = useTheme();
+  const t = useTranslate();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, configured, signOut } = useAuth();
-  const displayName = user?.user_metadata?.full_name || user?.phone || user?.email || 'Tamu';
+  const displayName = user?.user_metadata?.full_name || user?.phone || user?.email || t('guestLabel');
   const initial = (displayName || 'T').charAt(0).toUpperCase();
 
   return (
@@ -32,7 +35,7 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: theme.colors.canvas }}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 140 }}
     >
-      <Text style={[theme.type.title, styles.pageTitle, { color: theme.colors.inkPrimary }]}>Profil</Text>
+      <Text style={[theme.type.title, styles.pageTitle, { color: theme.colors.inkPrimary }]}>{t('profileTitle')}</Text>
       <View style={[styles.accountCard, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.accountIdentity}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.inkPrimary }]}>
@@ -42,36 +45,36 @@ export default function ProfileScreen() {
             <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{displayName}</Text>
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>
               {user
-                ? 'Preferensi tersimpan di semua perangkat'
+                ? t('prefsSyncedAllDevices')
                 : configured
-                  ? 'Masuk untuk menyinkronkan pilihanmu'
-                  : 'Pilihan tersimpan di perangkat ini'}
+                  ? t('signInToSync')
+                  : t('savedOnThisDevice')}
             </Text>
           </View>
         </View>
         {user ? (
           <Pressable onPress={() => { void signOut().catch(() => {
-            const message = 'Sesi lokal sudah dibersihkan, tetapi keluar dari server gagal. Coba lagi saat terhubung.';
+            const message = t('signOutFailedMessage');
             if (Platform.OS === 'web') alert(message);
-            else Alert.alert('Keluar belum selesai', message);
+            else Alert.alert(t('signOutIncompleteTitle'), message);
           }); }} style={[styles.loginBtn, { backgroundColor: theme.colors.surfaceSoft }]}>
-            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Keluar</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{t('signOut')}</Text>
           </Pressable>
         ) : (
           <Pressable onPress={() => router.push('/sign-in')} style={[styles.loginBtn, { backgroundColor: theme.colors.inkPrimary }]}>
-            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Masuk / Daftar</Text>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{t('signInOrRegister')}</Text>
             <Feather name="arrow-right" size={16} color={theme.colors.surface} />
           </Pressable>
         )}
       </View>
 
       {MENU.map((group) => (
-        <View key={group.title} style={styles.menuGroup}>
-          <Text style={[theme.type.captionStrong, styles.groupTitle, { color: theme.colors.inkSecondary }]}>{group.title}</Text>
+        <View key={group.titleKey} style={styles.menuGroup}>
+          <Text style={[theme.type.captionStrong, styles.groupTitle, { color: theme.colors.inkSecondary }]}>{t(group.titleKey)}</Text>
           <View style={[styles.groupSurface, { backgroundColor: theme.colors.surface }]}>
             {group.items.map((item, index) => (
               <Pressable
-                key={item.label}
+                key={item.labelKey}
                 accessibilityRole="button"
                 onPress={() => router.push(item.route as any)}
                 style={[styles.menuItem, index < group.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
@@ -80,8 +83,8 @@ export default function ProfileScreen() {
                   <Feather name={item.icon} size={17} color={theme.colors.inkPrimary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{item.label}</Text>
-                  <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 2 }]}>{item.hint}</Text>
+                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{t(item.labelKey)}</Text>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 2 }]}>{t(item.hintKey)}</Text>
                 </View>
                 <Feather name="chevron-right" size={18} color={theme.colors.inkTertiary} />
               </Pressable>
