@@ -1,4 +1,3 @@
-import * as Localization from 'expo-localization';
 import { useAppStore, type Language } from '../store/useAppStore';
 
 /**
@@ -34,10 +33,21 @@ const strings = {
 
 export type StringKey = keyof typeof strings;
 
+/**
+ * Uses the pure-JS Intl API rather than expo-localization — that native
+ * module isn't present in every Expo Go build, and it threw at import
+ * time (crashing the whole app before render). Intl.DateTimeFormat has
+ * no native dependency and works identically in Expo Go, a dev build,
+ * and production.
+ */
 export function resolveLanguage(preference: Language): 'id' | 'en' {
   if (preference !== 'system') return preference;
-  const deviceTag = Localization.getLocales()[0]?.languageCode ?? 'id';
-  return deviceTag === 'en' ? 'en' : 'id';
+  try {
+    const deviceTag = Intl.DateTimeFormat().resolvedOptions().locale ?? 'id';
+    return deviceTag.toLowerCase().startsWith('en') ? 'en' : 'id';
+  } catch {
+    return 'id';
+  }
 }
 
 export function useLanguage(): 'id' | 'en' {
