@@ -115,6 +115,7 @@ export default function PropertyDetailScreen() {
   };
   const submitTourRequest = () => {
     const phone = property.advertiser.contactPhone;
+    if (!phone) return;
     const days = tourDayOptions(t, lang);
     const chosenDay = days.find((d) => d.offset === tourDay);
     if (!chosenDay || !tourTime) return;
@@ -133,11 +134,7 @@ export default function PropertyDetailScreen() {
     const message = encodeURIComponent(
       `Halo, saya ingin menjadwalkan tur untuk "${property.title}" di Huni pada ${chosenDay.label.toLowerCase()}, ${timeLabel.toLowerCase()}. Apakah waktu ini tersedia?`
     );
-    if (phone) {
-      Linking.openURL(`https://wa.me/${phone}?text=${message}`).catch(() => {});
-    } else {
-      Alert.alert(t('tourRequestSentTitle'), t('tourRequestSentBody'));
-    }
+    Linking.openURL(`https://wa.me/${phone}?text=${message}`).catch(() => {});
     setTourPickerOpen(false);
     setTourDay(null);
     setTourTime(null);
@@ -277,13 +274,13 @@ export default function PropertyDetailScreen() {
               <Feather name="bookmark" size={15} color={theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('shortlist')}</Text>
             </Pressable>
-            <Pressable
+            {property.advertiser.contactPhone ? <Pressable
               onPress={() => setTourPickerOpen((v) => !v)}
               style={[styles.pillBtn, { borderColor: tourPickerOpen ? theme.colors.brand : theme.colors.border, backgroundColor: tourPickerOpen ? theme.colors.brandSoft : theme.colors.surface }]}
             >
               <Feather name="calendar" size={15} color={tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary }]}>{t('scheduleTour')}</Text>
-            </Pressable>
+            </Pressable> : null}
             {property.videoUrl ? (
               <Pressable
                 onPress={watchVideo}
@@ -330,7 +327,7 @@ export default function PropertyDetailScreen() {
             </View>
           ) : null}
 
-          {tourPickerOpen ? (
+          {property.advertiser.contactPhone && tourPickerOpen ? (
             <View style={[styles.shortlistPicker, { borderColor: theme.colors.border, padding: 14 }]}>
               <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('pickDay')}</Text>
               <View style={styles.tourChipRow}>

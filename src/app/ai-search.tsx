@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
-import { useAppStore } from '../store/useAppStore';
+import { defaultFilters, useAppStore } from '../store/useAppStore';
 import { fetchProperties } from '../data/repository';
 import { getPopularAreas } from '../data/properties';
 import { parseIntentSmart } from '../lib/aiSearch';
@@ -26,7 +26,6 @@ export default function AiSearchScreen() {
   const addSearchHistory = useAppStore((s) => s.addSearchHistory);
   const setIntent = useAppStore((s) => s.setIntent);
   const setFilters = useAppStore((s) => s.setFilters);
-  const filters = useAppStore((s) => s.filters);
   const { data: properties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
   const popularAreas = getPopularAreas(properties).slice(0, 6);
 
@@ -39,11 +38,11 @@ export default function AiSearchScreen() {
       addSearchHistory(trimmed);
       if (parsed.intent) setIntent(parsed.intent);
       setFilters({
-        ...filters,
-        types: parsed.type ? [parsed.type] : filters.types,
-        bedrooms: parsed.bedrooms ?? filters.bedrooms,
-        maxInstallment: parsed.maxInstallment ?? filters.maxInstallment,
-        maxPrice: parsed.maxPrice ?? filters.maxPrice,
+        ...defaultFilters,
+        types: parsed.type ? [parsed.type] : [],
+        bedrooms: parsed.bedrooms ?? null,
+        maxInstallment: parsed.maxInstallment ?? null,
+        maxPrice: parsed.maxPrice ?? null,
       });
       router.replace({ pathname: '/(tabs)/search', params: { q: parsed.location ?? trimmed, restore: `ai:${Date.now()}` } });
     } catch {

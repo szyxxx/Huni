@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAppStore, type Language } from '../store/useAppStore';
 
 /**
@@ -80,7 +81,7 @@ const strings = {
   // Explore (search.tsx)
   exploreEyebrow: { id: 'JELAJAHI HUNI', en: 'EXPLORE HUNI' },
   exploreTitle: { id: 'Cari dengan caramu.', en: 'Search your way.' },
-  exploreSearchPlaceholder: { id: 'Area, rumah, atau kebutuhanmu...', en: 'Area, home, or what you need...' },
+  exploreSearchPlaceholder: { id: 'Cari lokasi...', en: 'Search area...' },
   askAi: { id: 'Tanya AI', en: 'Ask AI' },
   openFilters: { id: 'Buka filter', en: 'Open filters' },
   showMap: { id: 'Tampilkan peta', en: 'Show map' },
@@ -356,5 +357,5 @@ export function useLanguage(): 'id' | 'en' {
 
 export function useTranslate() {
   const lang = useLanguage();
-  return (key: StringKey) => strings[key][lang];
+  return useCallback((key: StringKey) => strings[key][lang], [lang]);
 }

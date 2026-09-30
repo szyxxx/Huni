@@ -1,6 +1,6 @@
 # Gap fitur Huni
 
-Status pada 30 September 2026. Dokumen audit fitur lama telah diganti karena banyak barisnya sudah tidak sesuai kode. Temuan teknis dan perbaikan audit ada di `audit-2026-09-28.md`, `audit-2026-09-29.md`, dan riwayat Git.
+Status pada 30 September 2026. Temuan teknis terbaru dan batas verifikasi ada di `audit-2026-09-30.md`; audit sebelumnya ada di `audit-2026-09-28.md`, `audit-2026-09-29.md`, dan riwayat Git. Pernyataan “selesai” di bawah merujuk implementasi kode, bukan bukti bahwa semua migrasi dan layanan live sudah siap.
 
 ## Permintaan v2 Axel (30 Sep) — status
 
@@ -22,7 +22,7 @@ Status pada 30 September 2026. Dokumen audit fitur lama telah diganti karena ban
 | Area | Gap yang benar-benar tersisa |
 | --- | --- |
 | Rilis | Domain `huni.id`, halaman publik yang terdeploy, tinjauan legal kebijakan privasi, aset Play, akun Play Console, build dan uji perangkat belum diverifikasi. |
-| Backend live | Migrasi RLS, dua Edge Function admin, secret job, serta jadwal Cron belum diterapkan/diuji di proyek Supabase live. |
+| Backend live | Query baca-saja membuktikan kolom tur virtual dari migrasi `0010` belum ada di Supabase yang dikonfigurasi. Aplikasi memakai fallback katalog sementara; migrasi `0008`–`0011`, RLS, dua Edge Function admin, secret job, serta Cron belum diterapkan/diuji di proyek live. |
 | Workspace tamu | Data tamu kini persisten dan terpisah dari akun. Impor otomatis ke akun belum dibuat karena katalog demo memakai ID `p1` dkk., sedangkan database memakai UUID. |
 | Pencarian | Katalog diunduh penuh; belum ada pagination/cursor untuk inventaris besar. Hierarki lokasi, rent period, sertifikat, dan rent-to-own belum ada pada model. |
 | Peta | Katalog contoh sekarang tampil dengan pin melalui koordinat sementara di aplikasi. Migrasi `0008_seed_coordinates.sql` belum diterapkan ke Supabase live; pin berdekatan pada zoom nasional masih perlu pengelompokan. Listing baru wajib memasok koordinat yang akurat. |

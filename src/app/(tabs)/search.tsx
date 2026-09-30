@@ -160,7 +160,7 @@ export default function SearchScreen() {
       );
     }
     return list;
-  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios, properties]);
+  }, [intent, query, sort, filters, activeChips, parsed, hiddenIds, kprScenarios, properties, t]);
 
   const projectResults = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('id');

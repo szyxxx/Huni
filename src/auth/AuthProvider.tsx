@@ -148,10 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return error ? { error: error.message } : {};
       },
       signOut: async () => {
-        useAppStore.getState().setSyncUserId(null);
-        setSession(null);
         const { error } = await supabase?.auth.signOut() ?? { error: null };
         if (error) throw error;
+        useAppStore.getState().setSyncUserId(null);
+        setSession(null);
       },
     }),
     [session, loading]

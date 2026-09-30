@@ -88,6 +88,22 @@ test('database policies and price event processing enforce trust boundaries', ()
       insert into public.advertisers (id, name) values ('00000000-0000-4000-8000-000000000004', 'Agent');
       insert into public.properties (id, advertiser_id, title, intent, type, price, area, city, status)
       values ('00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000004', 'Home', 'buy', 'house', 100, 'Area', 'City', 'active');
+      grant insert on public.leads to authenticated;
+      set role authenticated;
+      set request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
+      do $$
+      begin
+        begin
+          insert into public.leads (property_id, user_id, source_surface, channel)
+          values ('00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000001', 'test', 'inquiry');
+          raise exception 'lead accepted another user identity';
+        exception when insufficient_privilege then
+          null;
+        end;
+      end $$;
+      insert into public.leads (property_id, user_id, source_surface, channel)
+      values ('00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000002', 'test', 'inquiry');
+      reset role;
       grant select, insert, update on public.listing_reports to authenticated;
       set role authenticated;
       set request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';

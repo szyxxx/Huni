@@ -91,14 +91,29 @@ const PROPERTY_SELECT = `
   property_nearby_places ( label, minutes )
 `;
 
+// The live catalogue can lag behind the optional virtual-tour migration.
+// Retry only for that known schema gap; other query errors remain visible.
+const LEGACY_PROPERTY_SELECT = PROPERTY_SELECT.replace('  virtual_tour_url, virtual_tour_kind, promotion,', '  promotion,');
+let legacyPropertySchema = false;
+
+function isMissingVirtualTourColumn(error: { code?: string; message?: string } | null) {
+  return error?.code === '42703' && /properties\.virtual_tour_(url|kind)/.test(error.message ?? '');
+}
+
 /** Live listings when Supabase is configured, otherwise the bundled mock catalogue. */
 export async function fetchProperties(): Promise<Property[]> {
   if (!isSupabaseConfigured || !supabase) return mockProperties;
-  const { data, error } = await supabase
+  const db = supabase;
+  const query = (selection: string) => db
     .from('properties')
-    .select(PROPERTY_SELECT)
+    .select(selection)
     .eq('status', 'active')
     .order('last_confirmed_at', { ascending: false });
+  let { data, error } = await query(legacyPropertySchema ? LEGACY_PROPERTY_SELECT : PROPERTY_SELECT);
+  if (isMissingVirtualTourColumn(error)) {
+    legacyPropertySchema = true;
+    ({ data, error } = await query(LEGACY_PROPERTY_SELECT));
+  }
   if (error) throw error;
   if (!data) throw new Error('Katalog properti tidak tersedia.');
   return (data as unknown as PropertyRow[]).map(mapPropertyRow);
@@ -106,7 +121,13 @@ export async function fetchProperties(): Promise<Property[]> {
 
 export async function fetchPropertyById(id: string): Promise<Property | undefined> {
   if (!isSupabaseConfigured || !supabase) return getMockPropertyById(id);
-  const { data, error } = await supabase.from('properties').select(PROPERTY_SELECT).eq('id', id).maybeSingle();
+  const db = supabase;
+  const query = (selection: string) => db.from('properties').select(selection).eq('id', id).maybeSingle();
+  let { data, error } = await query(legacyPropertySchema ? LEGACY_PROPERTY_SELECT : PROPERTY_SELECT);
+  if (isMissingVirtualTourColumn(error)) {
+    legacyPropertySchema = true;
+    ({ data, error } = await query(LEGACY_PROPERTY_SELECT));
+  }
   if (error) throw error;
   if (!data) return undefined;
   return mapPropertyRow(data as unknown as PropertyRow);
