@@ -173,7 +173,7 @@ export default function SearchScreen() {
   const mapCities = Array.from(new Set(results.map((property) => property.city)));
   const mapCity = selectedCity && mapCities.includes(selectedCity) ? selectedCity : mapCities[0];
   const mapResults = results.filter((property) => property.city === mapCity);
-  const selectedMapProperty = mapResults.find((property) => property.id === selectedMapId);
+  const selectedMapProperty = mapResults.find((property) => property.id === selectedMapId) ?? mapResults[0];
 
   const saveThisSearch = () => {
     addSavedSearch({ label: query.trim() || t('savedSearchDefaultLabel'), query, intent, filters, notify: false });
@@ -342,11 +342,11 @@ export default function SearchScreen() {
             >
               <Image source={{ uri: item.images[0] }} style={styles.projectImage} contentFit="cover" />
               <View style={styles.projectBody}>
-                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t('newProjectBadge')} · {item.progressPercent}% {t('percentComplete')}</Text>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{item.progressPercent >= 100 ? t('projectReadyBadge') : `${t('projectBuildingBadge')} · ${item.progressPercent}% ${t('percentComplete')}`}</Text>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 5 }]}>{item.name}</Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.area}, {item.city}</Text>
                 <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{item.units.length ? `${t('startingFrom')} ${formatIDR(Math.min(...item.units.map((unit) => unit.priceFrom)))}` : t('unitPriceUnavailable')}</Text>
-                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.developer} · {item.units.length} {t('unitTypeCount')}</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.developer} · {item.units.length} {t('unitTypeCount')} · {item.units.reduce((sum, unit) => sum + unit.available, 0)} {t('unitsAvailable')}</Text>
               </View>
             </Pressable>
           )}
@@ -360,7 +360,7 @@ export default function SearchScreen() {
             ))}
           </ScrollView> : null}
           <View style={styles.mapWrap}>
-            <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapId} showNearbyPlaces />
+            <PropertyMapView key={mapCity ?? 'empty'} properties={mapResults} onSelect={setSelectedMapId} selectedId={selectedMapProperty?.id} showNearbyPlaces />
             {selectedMapProperty ? (
               <View style={[styles.mapPreview, { backgroundColor: theme.colors.surface }]}>
                 <Pressable onPress={() => router.push(`/property/${selectedMapProperty.id}`)} accessibilityRole="button" accessibilityLabel={`${t('openPreview')} ${selectedMapProperty.title}`} style={styles.mapPreviewOpen}>
@@ -371,9 +371,6 @@ export default function SearchScreen() {
                     <Text style={[theme.type.micro, { color: theme.colors.inkTertiary, marginTop: 3 }]} numberOfLines={1}>{selectedMapProperty.area}, {selectedMapProperty.city}</Text>
                   </View>
                   <Feather name="arrow-up-right" size={18} color={theme.colors.inkPrimary} />
-                </Pressable>
-                <Pressable onPress={() => setSelectedMapId(null)} accessibilityRole="button" accessibilityLabel={t('closePreview')} style={styles.previewClose}>
-                  <Feather name="x" size={15} color={theme.colors.inkSecondary} />
                 </Pressable>
               </View>
             ) : null}
@@ -476,7 +473,6 @@ const styles = StyleSheet.create({
   mapPreview: { position: 'absolute', left: 12, right: 12, bottom: 12, borderRadius: 18, padding: 10, ...shadow.soft },
   mapPreviewOpen: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 34 },
   mapPreviewImage: { width: 68, height: 68, borderRadius: 12 },
-  previewClose: { position: 'absolute', right: 8, top: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   projectCard: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   projectImage: { width: '100%', height: 210 },
   projectBody: { padding: 16 },

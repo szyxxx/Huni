@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -34,6 +34,7 @@ export default function ProjectDetailScreen() {
   const insets = useSafeAreaInsets();
   const setIntent = useAppStore((s) => s.setIntent);
   const { width } = useWindowDimensions();
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const { data: project, isLoading, error: projectError, refetch: refetchProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => fetchProjectById(id),
@@ -69,11 +70,14 @@ export default function ProjectDetailScreen() {
 
   const unitClusters = project ? groupByCluster(project.units) : [];
   const lowestPrice = project.units.length ? Math.min(...project.units.map((u) => u.priceFrom)) : null;
+  const availableUnits = project.units.reduce((sum, unit) => sum + unit.available, 0);
+  const selectedUnit = project.units.find((unit) => unit.id === selectedUnitId) ?? project.units.find((unit) => unit.available > 0) ?? project.units[0];
 
   const requestBrochure = () => {
     if (!project.contactPhone) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const text = encodeURIComponent(`Halo, saya minta brosur dan info unit untuk proyek "${project.name}" di Huni.`);
+    const unitDetail = selectedUnit ? `, khususnya ${selectedUnit.name} (mulai ${formatIDR(selectedUnit.priceFrom)})` : '';
+    const text = encodeURIComponent(`Halo, saya minta brosur dan info unit untuk hunian "${project.name}"${unitDetail} di Huni. Apakah masih tersedia?`);
     Linking.openURL(`https://wa.me/${project.contactPhone}?text=${text}`).catch(() => {});
   };
 
@@ -119,6 +123,18 @@ export default function ProjectDetailScreen() {
             </View>
           ) : null}
 
+          <View style={[styles.inventoryPanel, { borderColor: theme.colors.border }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{project.units.length}</Text>
+              <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>tipe hunian</Text>
+            </View>
+            <View style={[styles.inventoryDivider, { backgroundColor: theme.colors.border }]} />
+            <View style={{ flex: 1, paddingLeft: 18 }}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>{availableUnits}</Text>
+              <Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>unit tersedia</Text>
+            </View>
+          </View>
+
           <View style={[styles.progressPanel, { backgroundColor: theme.colors.surface }]}>
             <View style={styles.progressHeading}>
               <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>Progres pembangunan</Text>
@@ -130,7 +146,8 @@ export default function ProjectDetailScreen() {
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 10 }]}>{project.progressLabel}</Text>
           </View>
 
-          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Tipe unit</Text>
+          <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>Pilih tipe hunian</Text>
+          {unitClusters.length ? <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>Pilih tipe untuk melihat harga dan menanyakan ketersediaannya.</Text> : null}
           {!unitClusters.length ? <Text style={[theme.type.body, { color: theme.colors.inkSecondary, marginTop: 10 }]}>Tipe unit belum tersedia untuk proyek ini.</Text> : null}
           {unitClusters.map(([cluster, units]) => (
             <View key={cluster} style={{ marginTop: 10 }}>
@@ -141,14 +158,17 @@ export default function ProjectDetailScreen() {
               ) : null}
               <View style={{ gap: 10 }}>
                 {units.map((u) => (
-                  <View key={u.id} style={[styles.unitRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+                  <Pressable key={u.id} accessibilityRole="button" accessibilityState={{ selected: selectedUnit?.id === u.id, disabled: u.available <= 0 }} accessibilityLabel={`${u.name}, mulai ${formatIDR(u.priceFrom)}, ${u.available} unit tersedia`} disabled={u.available <= 0} onPress={() => setSelectedUnitId(u.id)} style={[styles.unitRow, { borderColor: selectedUnit?.id === u.id ? theme.colors.inkPrimary : theme.colors.border, backgroundColor: theme.colors.surface, opacity: u.available > 0 ? 1 : 0.55 }]}>
                     <View style={styles.unitHeading}>
                       <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, flex: 1 }]}>{u.name}</Text>
-                      <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{u.available} TERSEDIA</Text>
+                      {selectedUnit?.id === u.id ? <Feather name="check-circle" size={17} color={theme.colors.brandInk} /> : null}
                     </View>
                     <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 8 }]}>{u.bedrooms} kamar · {u.bathrooms} mandi · {u.buildingArea} m²</Text>
-                    <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 12 }]}>Mulai {formatIDR(u.priceFrom)}</Text>
-                  </View>
+                    <View style={styles.unitFooter}>
+                      <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, flex: 1 }]}>Mulai {formatIDR(u.priceFrom)}</Text>
+                      <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{u.available > 0 ? `${u.available} TERSEDIA` : 'HABIS'}</Text>
+                    </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -178,9 +198,9 @@ export default function ProjectDetailScreen() {
 
       <GlassSurface style={[styles.contactBar, { paddingBottom: insets.bottom + 12 }]} intensity={60}>
         <View style={{ flex: 1 }}>
-          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Mulai dari</Text>
+          <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]} numberOfLines={1}>{selectedUnit?.name ?? 'Mulai dari'}</Text>
           <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>
-            {lowestPrice === null ? 'Harga belum tersedia' : formatIDR(lowestPrice)}
+            {selectedUnit ? formatIDR(selectedUnit.priceFrom) : lowestPrice === null ? 'Harga belum tersedia' : formatIDR(lowestPrice)}
           </Text>
         </View>
         <Pressable
@@ -205,12 +225,15 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 20 },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
   promoBanner: { marginTop: 14, padding: 14, borderRadius: 12 },
+  inventoryPanel: { marginTop: 22, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', paddingVertical: 16 },
+  inventoryDivider: { width: StyleSheet.hairlineWidth },
   progressPanel: { marginTop: 24, borderRadius: 20, padding: 20 },
   progressHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   progressTrack: { height: 8, borderRadius: 4, marginTop: 14, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   unitRow: { padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   unitHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  unitFooter: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   facilityWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   facilityItem: { width: '47%', minWidth: 138, flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 44 },
   facilityIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
