@@ -57,6 +57,7 @@ function RootStack() {
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="project/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="developer/[name]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="agent/[name]" options={{ presentation: 'card' }} />
         <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
       </Stack>
     </>

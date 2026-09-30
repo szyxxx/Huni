@@ -19,6 +19,26 @@ import { PropertyCard } from '../../components/PropertyCard';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { facilityIcon } from '../../lib/facilityIcon';
+import { logLead } from '../../lib/leads';
+
+type TourTimeSlot = { label: string; hour: number };
+
+const TOUR_TIME_SLOTS: TourTimeSlot[] = [
+  { label: 'Pagi (09.00)', hour: 9 },
+  { label: 'Siang (12.00)', hour: 12 },
+  { label: 'Sore (15.00)', hour: 15 },
+  { label: 'Malam (18.00)', hour: 18 },
+];
+
+function tourDayOptions() {
+  const labels = ['Hari ini', 'Besok', 'Lusa'];
+  return Array.from({ length: 5 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const label = labels[i] ?? date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+    return { offset: i, date, label };
+  });
+}
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +55,9 @@ export default function PropertyDetailScreen() {
   const shortlists = useAppStore((s) => s.shortlists);
   const addToShortlist = useAppStore((s) => s.addToShortlist);
   const [shortlistPickerOpen, setShortlistPickerOpen] = useState(false);
+  const [tourPickerOpen, setTourPickerOpen] = useState(false);
+  const [tourDay, setTourDay] = useState<number | null>(null);
+  const [tourTime, setTourTime] = useState<TourTimeSlot | null>(null);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addRecentlyViewed = useAppStore((s) => s.addRecentlyViewed);
@@ -80,8 +103,37 @@ export default function PropertyDetailScreen() {
     const phone = property.advertiser.contactPhone;
     if (!phone) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void logLead({ propertyId: property.id, userId: user?.id ?? null, sourceSurface: 'property_detail', channel: 'whatsapp' });
     const text = encodeURIComponent(`Halo, saya tertarik dengan "${property.title}" di Huni.`);
     Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {});
+  };
+  const submitTourRequest = () => {
+    const phone = property.advertiser.contactPhone;
+    const days = tourDayOptions();
+    const chosenDay = days.find((d) => d.offset === tourDay);
+    if (!chosenDay || !tourTime) return;
+    const scheduledFor = new Date(chosenDay.date);
+    scheduledFor.setHours(tourTime.hour, 0, 0, 0);
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void logLead({
+      propertyId: property.id,
+      userId: user?.id ?? null,
+      sourceSurface: 'property_detail',
+      channel: 'tour_request',
+      scheduledFor,
+      note: `${chosenDay.label}, ${tourTime.label}`,
+    });
+    const message = encodeURIComponent(
+      `Halo, saya ingin menjadwalkan tur untuk "${property.title}" di Huni pada ${chosenDay.label.toLowerCase()}, ${tourTime.label.toLowerCase()}. Apakah waktu ini tersedia?`
+    );
+    if (phone) {
+      Linking.openURL(`https://wa.me/${phone}?text=${message}`).catch(() => {});
+    } else {
+      Alert.alert('Permintaan tur terkirim', 'Kami akan meneruskan permintaanmu ke pengiklan.');
+    }
+    setTourPickerOpen(false);
+    setTourDay(null);
+    setTourTime(null);
   };
   const shareProperty = () => {
     const link = `huni://property/${property.id}`;
@@ -218,6 +270,13 @@ export default function PropertyDetailScreen() {
               <Feather name="bookmark" size={15} color={theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Shortlist</Text>
             </Pressable>
+            <Pressable
+              onPress={() => setTourPickerOpen((v) => !v)}
+              style={[styles.pillBtn, { borderColor: tourPickerOpen ? theme.colors.brand : theme.colors.border, backgroundColor: tourPickerOpen ? theme.colors.brandSoft : theme.colors.surface }]}
+            >
+              <Feather name="calendar" size={15} color={tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary} />
+              <Text style={[theme.type.captionStrong, { color: tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary }]}>Jadwalkan tur</Text>
+            </Pressable>
             {property.videoUrl ? (
               <Pressable
                 onPress={watchVideo}
@@ -252,6 +311,53 @@ export default function PropertyDetailScreen() {
                   </Pressable>
                 ))
               )}
+            </View>
+          ) : null}
+
+          {tourPickerOpen ? (
+            <View style={[styles.shortlistPicker, { borderColor: theme.colors.border, padding: 14 }]}>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Pilih hari</Text>
+              <View style={styles.tourChipRow}>
+                {tourDayOptions().map((d) => (
+                  <Pressable
+                    key={d.offset}
+                    onPress={() => setTourDay(d.offset)}
+                    style={[
+                      styles.tourChip,
+                      { borderColor: theme.colors.border, backgroundColor: tourDay === d.offset ? theme.colors.inkPrimary : theme.colors.surface },
+                    ]}
+                  >
+                    <Text style={[theme.type.caption, { color: tourDay === d.offset ? theme.colors.surface : theme.colors.inkSecondary }]}>{d.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 12 }]}>Pilih waktu</Text>
+              <View style={styles.tourChipRow}>
+                {TOUR_TIME_SLOTS.map((slot) => (
+                  <Pressable
+                    key={slot.hour}
+                    onPress={() => setTourTime(slot)}
+                    style={[
+                      styles.tourChip,
+                      { borderColor: theme.colors.border, backgroundColor: tourTime?.hour === slot.hour ? theme.colors.inkPrimary : theme.colors.surface },
+                    ]}
+                  >
+                    <Text style={[theme.type.caption, { color: tourTime?.hour === slot.hour ? theme.colors.surface : theme.colors.inkSecondary }]}>{slot.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable
+                onPress={submitTourRequest}
+                disabled={tourDay === null || !tourTime}
+                style={[
+                  styles.tourSubmitBtn,
+                  { backgroundColor: tourDay !== null && tourTime ? theme.colors.inkPrimary : theme.colors.surfaceSoft, marginTop: 14 },
+                ]}
+              >
+                <Text style={[theme.type.captionStrong, { color: tourDay !== null && tourTime ? theme.colors.surface : theme.colors.inkTertiary }]}>
+                  Kirim permintaan tur
+                </Text>
+              </Pressable>
             </View>
           ) : null}
 
@@ -338,7 +444,12 @@ export default function PropertyDetailScreen() {
           <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 24 }]}>
             Diiklankan oleh
           </Text>
-          <View style={[styles.advertiserRow, { borderColor: theme.colors.border }]}>
+          <Pressable
+            onPress={() => router.push(`/agent/${encodeURIComponent(property.advertiser.name)}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`Lihat profil ${property.advertiser.name}`}
+            style={[styles.advertiserRow, { borderColor: theme.colors.border }]}
+          >
             <View style={[styles.advertiserAvatar, { backgroundColor: theme.colors.inkPrimary }]}>
               <Text style={{ color: theme.colors.surface, fontWeight: '600' }}>
                 {property.advertiser.name.charAt(0)}
@@ -353,7 +464,9 @@ export default function PropertyDetailScreen() {
                 {property.lastConfirmed}
               </Text>
             </View>
-          </View>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, marginRight: 6 }]}>Lihat profil</Text>
+            <Feather name="chevron-right" size={16} color={theme.colors.inkTertiary} />
+          </Pressable>
 
           <Pressable style={styles.reportRow} onPress={reportListing}>
             <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, textDecorationLine: 'underline' }]}>
@@ -422,6 +535,9 @@ const styles = StyleSheet.create({
   pillBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
   shortlistPicker: { marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 4 },
   shortlistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 },
+  tourChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  tourChip: { minHeight: 36, paddingHorizontal: 12, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  tourSubmitBtn: { minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   topBar: {
     position: 'absolute',
     left: 16,
