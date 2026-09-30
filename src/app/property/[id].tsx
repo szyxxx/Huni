@@ -384,7 +384,7 @@ export default function PropertyDetailScreen() {
           ) : null}
 
           {property.estimatedInstallment ? (
-            <Pressable onPress={() => router.push(`/kpr?price=${property.price}`)} style={[styles.installmentLink, { backgroundColor: theme.colors.brandSoft }]}>
+            <Pressable onPress={() => router.push(`/kpr?price=${property.price}&propertyId=${property.id}`)} style={[styles.installmentLink, { backgroundColor: theme.colors.brandSoft }]}>
               <Feather name="pie-chart" size={18} color={theme.colors.brandInk} />
               <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk, flex: 1 }]}>
                 Estimasi cicilan {formatIDR(property.estimatedInstallment)}/bulan

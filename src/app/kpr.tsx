@@ -1,33 +1,73 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeProvider';
 import { Chip } from '../components/Chip';
 import { Stepper } from '../components/Stepper';
-import { calculateKpr, calculateTakeOver } from '../lib/kpr';
+import { calculateKpr, calculateTakeOver, calculateBankProgram, BANK_PROGRAMS } from '../lib/kpr';
 import { formatDigits, formatIDR } from '../lib/format';
 import { useAppStore, defaultFilters } from '../store/useAppStore';
+import { fetchPropertyById } from '../data/repository';
+import { logLead } from '../lib/leads';
+import { useAuth } from '../auth/AuthProvider';
 
-type Mode = 'new' | 'takeover';
+type Mode = 'program' | 'new' | 'takeover';
 
 export default function KprScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ price?: string }>();
+  const params = useLocalSearchParams<{ price?: string; propertyId?: string }>();
+  const { user } = useAuth();
   const addKprScenario = useAppStore((s) => s.addKprScenario);
   const setFilters = useAppStore((s) => s.setFilters);
   const setIntent = useAppStore((s) => s.setIntent);
-  const [mode, setMode] = useState<Mode>('new');
+  const [mode, setMode] = useState<Mode>('program');
+
+  const { data: linkedProperty } = useQuery({
+    queryKey: ['property', params.propertyId],
+    queryFn: () => fetchPropertyById(params.propertyId!),
+    enabled: Boolean(params.propertyId),
+  });
 
   const [priceText, setPriceText] = useState(String(Number(params.price) || 1_500_000_000));
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
   const [tenorYears, setTenorYears] = useState(15);
   const [ratePercent, setRatePercent] = useState(7.5);
+  const [bankFilter, setBankFilter] = useState<string | null>(null);
+  const [selectedProgramId, setSelectedProgramId] = useState(BANK_PROGRAMS[0].id);
+  const [showRincian, setShowRincian] = useState(false);
 
   const price = Number(priceText.replace(/[^0-9]/g, '')) || 0;
+  const filteredPrograms = bankFilter ? BANK_PROGRAMS.filter((p) => p.bankName === bankFilter) : BANK_PROGRAMS;
+  const selectedProgram = BANK_PROGRAMS.find((p) => p.id === selectedProgramId) ?? BANK_PROGRAMS[0];
+  const programResult = useMemo(
+    () => calculateBankProgram({ price, downPaymentPercent, tenorYears, program: selectedProgram }),
+    [price, downPaymentPercent, tenorYears, selectedProgram]
+  );
+  const askProgram = () => {
+    const phone = linkedProperty?.advertiser.contactPhone;
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void logLead({
+      propertyId: linkedProperty?.id,
+      userId: user?.id ?? null,
+      sourceSurface: 'kpr_program',
+      channel: 'inquiry',
+      note: `Program ${selectedProgram.bankName}, tenor ${tenorYears} tahun`,
+    });
+    const text = encodeURIComponent(
+      `Halo, saya ingin bertanya tentang program KPR ${selectedProgram.bankName} (fix ${selectedProgram.fixRatePercent}% selama ${selectedProgram.fixYears} tahun)${linkedProperty ? ` untuk properti "${linkedProperty.title}"` : ''} di Huni.`
+    );
+    if (phone) {
+      Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {});
+    } else {
+      Alert.alert('Info program', 'Hubungi agen properti terkait untuk info lebih lanjut, atau simpan simulasi ini terlebih dahulu.');
+    }
+  };
   const result = useMemo(
     () => calculateKpr({ price, downPaymentPercent, tenorYears, ratePercent }),
     [price, downPaymentPercent, tenorYears, ratePercent]
@@ -44,10 +84,19 @@ export default function KprScreen() {
     () => calculateTakeOver({ remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent }),
     [remainingPrincipal, remainingTenorYears, currentInstallment, newRatePercent]
   );
-  const canSave = mode === 'new' ? price > 0 : remainingPrincipal > 0 && currentInstallment > 0;
+  const canSave = mode === 'new' || mode === 'program' ? price > 0 : remainingPrincipal > 0 && currentInstallment > 0;
 
   const save = () => {
-    if (mode === 'new') {
+    if (mode === 'program') {
+      addKprScenario({
+        label: `${selectedProgram.bankName} · ${formatIDR(price)}`,
+        price,
+        downPaymentPercent,
+        tenorYears,
+        ratePercent: selectedProgram.fixRatePercent,
+        monthlyInstallment: programResult.fixInstallment,
+      });
+    } else if (mode === 'new') {
       addKprScenario({
         label: `Simulasi ${formatIDR(price)}`,
         price,
@@ -85,12 +134,149 @@ export default function KprScreen() {
       </View>
 
       <View style={styles.modeRow}>
+        <Chip label="Program bank" selected={mode === 'program'} onPress={() => setMode('program')} />
         <Chip label="KPR baru" selected={mode === 'new'} onPress={() => setMode('new')} />
         <Chip label="Take-over KPR" selected={mode === 'takeover'} onPress={() => setMode('takeover')} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        {mode === 'new' ? (
+        {mode === 'program' ? (
+          <>
+            <View style={[styles.resultCard, { backgroundColor: theme.colors.inkPrimary }]}>
+              <Text style={[theme.type.caption, { color: 'rgba(255,255,255,0.7)' }]}>
+                Angsuran/bulan (fix {selectedProgram.fixYears} tahun pertama)
+              </Text>
+              <Text style={[theme.type.display, { color: theme.colors.surface, marginTop: 4 }]}>
+                {formatIDR(programResult.fixInstallment)}
+              </Text>
+              <Pressable onPress={() => setShowRincian((v) => !v)} hitSlop={8} style={{ marginTop: 10 }}>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.brand }]}>
+                  {showRincian ? 'Sembunyikan rincian ▲' : 'Lihat rincian ▾'}
+                </Text>
+              </Pressable>
+            </View>
+
+            {showRincian ? (
+              <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, paddingVertical: 4 }]}>
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>
+                    Angsuran/bulan Fix (tahun 1-{selectedProgram.fixYears}, bunga {selectedProgram.fixRatePercent}%)
+                  </Text>
+                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.fixInstallment)}</Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>
+                    Angsuran/bulan Floating (tahun {selectedProgram.fixYears + 1}-{tenorYears}, estimasi bunga {selectedProgram.estimatedFloatingRatePercent}%)
+                  </Text>
+                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.floatingInstallment)}</Text>
+                </View>
+
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>
+                  Estimasi pembayaran pertama
+                </Text>
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Uang muka</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.downPaymentAmount)}</Text>
+                </View>
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Angsuran pertama</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.fixInstallment)}</Text>
+                </View>
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Estimasi biaya lainnya</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.estimatedOtherCosts)}</Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Total pembayaran pertama</Text>
+                  <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.firstPaymentTotal)}</Text>
+                </View>
+
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 16 }]}>Detail pinjaman</Text>
+                <View style={styles.rincianRow}>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Pinjaman pokok</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.loanAmount)}</Text>
+                </View>
+                <View style={[styles.rincianRow, { paddingBottom: 14 }]}>
+                  <Text style={[theme.type.caption, { color: theme.colors.inkTertiary }]}>Estimasi bunga pinjaman</Text>
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>{formatIDR(programResult.totalEstimatedInterest)}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>Harga properti</Text>
+            <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <Text style={[theme.type.headline, { color: theme.colors.inkTertiary }]}>Rp</Text>
+              <TextInput
+                value={formatDigits(priceText)}
+                onChangeText={(t) => setPriceText(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                style={[theme.type.headline, { flex: 1, marginLeft: 8, color: theme.colors.inkPrimary }]}
+              />
+            </View>
+
+            <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Stepper
+                label="Uang muka (DP)"
+                value={`${downPaymentPercent}%  ·  ${formatIDR(price * (downPaymentPercent / 100))}`}
+                onDecrease={() => setDownPaymentPercent((v) => Math.max(5, v - 5))}
+                onIncrease={() => setDownPaymentPercent((v) => Math.min(90, v + 5))}
+              />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+              <Stepper
+                label="Jangka waktu KPR"
+                value={`${tenorYears} tahun`}
+                onDecrease={() => setTenorYears((v) => Math.max(selectedProgram.minTenorYears, v - 1))}
+                onIncrease={() => setTenorYears((v) => Math.min(selectedProgram.maxTenorYears, v + 1))}
+              />
+            </View>
+
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary, marginTop: 20 }]}>Pilihan program KPR</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 10 }}>
+              <Chip label="Semua bank" selected={!bankFilter} onPress={() => setBankFilter(null)} />
+              {Array.from(new Set(BANK_PROGRAMS.map((p) => p.bankName))).map((bank) => (
+                <Chip key={bank} label={bank} selected={bankFilter === bank} onPress={() => setBankFilter(bank)} />
+              ))}
+            </ScrollView>
+
+            <View style={{ marginTop: 12, gap: 10 }}>
+              {filteredPrograms.map((program) => {
+                const selected = program.id === selectedProgramId;
+                return (
+                  <Pressable
+                    key={program.id}
+                    onPress={() => setSelectedProgramId(program.id)}
+                    style={[
+                      styles.programCard,
+                      { borderColor: selected ? theme.colors.brand : theme.colors.border, backgroundColor: selected ? theme.colors.brandSoft : theme.colors.surface },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary }]}>{program.bankName}</Text>
+                        {program.badge ? (
+                          <View style={[styles.programBadge, { backgroundColor: theme.colors.inkPrimary }]}>
+                            <Text style={[theme.type.micro, { color: theme.colors.surface }]}>{program.badge}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>
+                        Bunga fix {program.fixRatePercent}% · Masa fix {program.fixYears} tahun
+                      </Text>
+                      <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
+                        Masa kredit {program.minTenorYears}-{program.maxTenorYears} tahun
+                      </Text>
+                    </View>
+                    <View style={[styles.radio, { borderColor: selected ? theme.colors.brand : theme.colors.border }]}>
+                      {selected ? <View style={[styles.radioDot, { backgroundColor: theme.colors.brand }]} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : mode === 'new' ? (
           <>
             <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>Harga properti</Text>
             <View style={[styles.priceInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
@@ -224,6 +410,13 @@ export default function KprScreen() {
         <Pressable disabled={!canSave} onPress={save} style={[styles.saveBtn, { backgroundColor: theme.colors.brand, opacity: canSave ? 1 : 0.45 }]}>
           <Text style={[theme.type.captionStrong, { color: theme.colors.onBrand }]}>Simpan simulasi ini</Text>
         </Pressable>
+
+        {mode === 'program' ? (
+          <Pressable onPress={askProgram} style={[styles.saveBtn, { marginTop: 10, backgroundColor: theme.colors.inkPrimary, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }]}>
+            <Feather name="message-circle" size={16} color={theme.colors.surface} />
+            <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Tanyakan program KPR ini</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -262,4 +455,9 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', marginTop: 18, gap: 16 },
   saveBtn: { marginTop: 20, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
   findBtn: { minHeight: 52, marginTop: 12, paddingHorizontal: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rincianRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  programCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
+  programBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginLeft: 12 },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
 });
