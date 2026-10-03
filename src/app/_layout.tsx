@@ -2,6 +2,8 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SystemUI from 'expo-system-ui';
+import { NavigationBar } from 'expo-navigation-bar';
 // eslint-disable-next-line import/no-duplicates
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -23,6 +25,10 @@ function RootStack() {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(theme.colors.canvas);
+  }, [theme.colors.canvas]);
+
+  useEffect(() => {
     hasSeenOnboarding().then((seen) => {
       if (!seen && segments[0] !== 'onboarding') {
         router.replace('/onboarding');
@@ -36,6 +42,7 @@ function RootStack() {
   return (
     <>
       <StatusBar style={segments[0] === 'onboarding' || theme.scheme === 'dark' ? 'light' : 'dark'} animated />
+      <NavigationBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,

@@ -25,7 +25,8 @@ export default function DeveloperProfileScreen() {
   const { data: projects = [], isLoading } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
 
   const developerProjects = projects.filter((p) => p.developer === developerName);
-  const verified = developerProjects.some((p) => p.developerVerified);
+  const verified = developerProjects.some((p) => p.developerVerified && p.developerConnected);
+  const hasDemoProjects = developerProjects.some((p) => !p.developerConnected);
   const isOwner = Boolean(user && developerProjects.some((p) => p.developerOwnerId === user.id));
 
   return (
@@ -48,6 +49,10 @@ export default function DeveloperProfileScreen() {
             {verified ? (
               <View style={[styles.badge, { backgroundColor: theme.colors.brandSoft }]}>
                 <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>DEVELOPER RESMI</Text>
+              </View>
+            ) : hasDemoProjects ? (
+              <View style={[styles.badge, { backgroundColor: theme.colors.brandSoft }]}>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>PROFIL CONTOH · BELUM TERHUBUNG</Text>
               </View>
             ) : null}
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 8 }]}>

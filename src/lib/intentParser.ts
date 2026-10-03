@@ -54,7 +54,7 @@ export function parseIntentQuery(raw: string): ParsedIntent {
     chips.push({ key: 'bedrooms', label: `${result.bedrooms}+ kamar tidur` });
   }
 
-  const installmentMatch = text.match(/cicilan\s*(?:maks(?:imal)?\s*)?(\d+(?:[.,]\d+)?)\s*(jt|juta|m|miliar)?/i);
+  const installmentMatch = text.match(/cicilan\s*(?:(?:maks(?:imal)?|di bawah|kurang dari)\s*)?(\d+(?:[.,]\d+)?)\s*(jt|juta|m|miliar)?/i);
   if (installmentMatch) {
     const value = parseFloat(installmentMatch[1].replace(',', '.'));
     const unit = (installmentMatch[2] || 'juta').toLowerCase();
@@ -63,7 +63,7 @@ export function parseIntentQuery(raw: string): ParsedIntent {
     chips.push({ key: 'maxInstallment', label: `Cicilan maks Rp ${value} ${unit.startsWith('m') ? 'M' : 'jt'}` });
   }
 
-  const priceMatch = !installmentMatch && text.match(/(?:harga\s*(?:maks(?:imal)?\s*)?|budget\s*)(\d+(?:[.,]\d+)?)\s*(jt|juta|m|miliar)/i);
+  const priceMatch = !installmentMatch && text.match(/(?:harga\s*(?:(?:maks(?:imal)?|di bawah|kurang dari)\s*)?|budget\s*)(\d+(?:[.,]\d+)?)\s*(jt|juta|m|miliar)/i);
   if (priceMatch) {
     const value = parseFloat(priceMatch[1].replace(',', '.'));
     const unit = priceMatch[2].toLowerCase();
@@ -72,7 +72,7 @@ export function parseIntentQuery(raw: string): ParsedIntent {
     chips.push({ key: 'maxPrice', label: `Harga maks Rp ${value} ${unit.startsWith('m') ? 'M' : 'jt'}` });
   }
 
-  const nearMatch = text.match(/dekat\s+([a-z0-9\s]+?)(?:\s+cicilan|\s+harga|$)/i);
+  const nearMatch = text.match(/dekat\s+([^,]+?)(?=,|\s+(?:cicilan|harga|budget)\b|$)/i);
   if (nearMatch) {
     result.location = nearMatch[1].trim();
     chips.push({ key: 'location', label: `Dekat ${result.location}` });

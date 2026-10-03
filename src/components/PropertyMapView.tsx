@@ -13,8 +13,9 @@ type Props = {
   showNearbyPlaces?: boolean;
 };
 
-const NEARBY_PLACES_MIN_ZOOM = 14;
-const POI_CLASSES = ['park', 'grocery', 'shop', 'cafe', 'fast_food', 'school', 'college'];
+const NEARBY_PLACES_MIN_ZOOM = 13.5;
+const NEARBY_VIEW_ZOOM = 14;
+const POI_CLASSES = ['park', 'grocery', 'school', 'college', 'hospital', 'railway'];
 
 function nearbyBoundary(lat: number, lng: number) {
   const earthRadius = 6_371_000;
@@ -107,10 +108,10 @@ function MapLibreView({
 }: Props & { theme: ReturnType<typeof useTheme>; onLoad: () => void; onFail: () => void }) {
   // Required inline (not top-level) so web/Expo Go never evaluate this native import.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Map, Camera, Marker, Layer } = require('@maplibre/maplibre-react-native');
+  const { Map, Camera, Marker, Layer, GeoJSONSource } = require('@maplibre/maplibre-react-native');
   const cameraRef = useRef<{ easeTo: (options: { center: [number, number]; zoom: number; duration: number }) => void }>(null);
   const mapRef = useRef<{ queryRenderedFeatures: (point: [number, number], options: { layers: string[] }) => Promise<{ properties?: { name?: string } }[]> }>(null);
-  const [zoom, setZoom] = useState(14);
+  const [zoom, setZoom] = useState(NEARBY_VIEW_ZOOM);
   const [focusedPlace, setFocusedPlace] = useState<{ propertyId: string; name: string } | null>(null);
 
   const poiCenter = showNearbyPlaces ? properties.find((p) => p.id === selectedId) ?? properties[0] : null;
@@ -119,7 +120,7 @@ function MapLibreView({
   const focusedName = focusedPlace && focusedPlace.propertyId === poiCenter?.id ? focusedPlace.name : null;
   const initialViewState = {
     center: poiCenter ? [poiCenter.lng, poiCenter.lat] as [number, number] : [117, -2.5] as [number, number],
-    zoom: poiCenter ? 14 : 4,
+    zoom: poiCenter ? NEARBY_VIEW_ZOOM : 4,
   };
   const showPlaces = Boolean(poiCenter) && zoom >= NEARBY_PLACES_MIN_ZOOM;
   const poiFilter = useMemo(() => poiLat != null && poiLng != null ? [
@@ -128,10 +129,15 @@ function MapLibreView({
     ['has', 'name'],
     ['within', nearbyBoundary(poiLat, poiLng)],
   ] : null, [poiLat, poiLng]);
+  const radiusData = useMemo(() => poiLat != null && poiLng != null ? {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: nearbyBoundary(poiLat, poiLng),
+  } : null, [poiLat, poiLng]);
 
   useEffect(() => {
     if (poiLat == null || poiLng == null) return;
-    cameraRef.current?.easeTo({ center: [poiLng, poiLat], zoom: 14, duration: 350 });
+    cameraRef.current?.easeTo({ center: [poiLng, poiLat], zoom: NEARBY_VIEW_ZOOM, duration: 350 });
   }, [poiLat, poiLng]);
 
   const handleRegionDidChange = (event: { nativeEvent?: { zoom?: number } }) => {
@@ -161,12 +167,13 @@ function MapLibreView({
       }}
     >
       <Camera ref={cameraRef} initialViewState={initialViewState} />
+      {radiusData ? <GeoJSONSource id="huni-nearby-radius" data={radiusData}>
+        <Layer id="huni-nearby-radius-fill" type="fill" source="huni-nearby-radius" paint={{ 'fill-color': theme.colors.brand, 'fill-opacity': 0.06 }} />
+        <Layer id="huni-nearby-radius-line" type="line" source="huni-nearby-radius" paint={{ 'line-color': theme.colors.brandInk, 'line-opacity': 0.55, 'line-width': 1.5, 'line-dasharray': [2, 2] }} />
+      </GeoJSONSource> : null}
       {showPlaces && poiFilter ? <>
         <Layer id="huni-nearby-poi" type="circle" source="openmaptiles" source-layer="poi" filter={poiFilter}
-          paint={{ 'circle-radius': 5, 'circle-color': ['match', ['get', 'class'], 'park', '#426C58', 'school', '#5473A4', 'college', '#5473A4', 'grocery', '#A95F45', '#353C40'], 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FFFFFF' }} />
-        <Layer id="huni-nearby-poi-label" type="symbol" source="openmaptiles" source-layer="poi" filter={poiFilter}
-          layout={{ 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-max-width': 8 }}
-          paint={{ 'text-color': '#171716', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.5 }} />
+          paint={{ 'circle-radius': 7, 'circle-color': ['match', ['get', 'class'], 'park', '#426C58', 'school', '#5473A4', 'college', '#5473A4', 'hospital', '#B74C56', 'grocery', '#A95F45', '#353C40'], 'circle-stroke-width': 2, 'circle-stroke-color': '#FFFFFF' }} />
       </> : null}
       {properties.map((p) => (
         <Marker key={p.id} id={p.id} lngLat={[p.lng, p.lat]} onPress={() => onSelect(p.id)}>
@@ -181,7 +188,7 @@ function MapLibreView({
         {focusedName ?? `Sekitar ${poiCenter.area} · 10 km`}
       </Text>
       <Text style={[theme.type.micro, { color: theme.colors.inkSecondary, marginTop: 2 }]} numberOfLines={1}>
-        {focusedName ? 'Tempat umum di sekitar properti' : !showPlaces ? 'Perbesar peta untuk melihat tempat umum' : 'Taman, belanja, kuliner, dan sekolah dalam radius 10 km'}
+        {focusedName ? 'Tempat umum di sekitar properti' : !showPlaces ? 'Perbesar peta untuk melihat tempat umum' : 'Ketuk titik berwarna untuk melihat nama tempat'}
       </Text>
     </View> : null}
     </View>

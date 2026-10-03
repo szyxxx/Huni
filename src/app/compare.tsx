@@ -33,7 +33,7 @@ const ROWS: Row[] = [
   { label: 'Kamar mandi', format: (p) => (p.bathrooms ? `${p.bathrooms}` : '-'), value: (p) => p.bathrooms ?? null, better: 'max' },
   { label: 'Luas tanah', format: (p) => (p.landArea ? `${p.landArea} m²` : '-'), value: (p) => p.landArea ?? null, better: 'max' },
   { label: 'Luas bangunan', format: (p) => (p.buildingArea ? `${p.buildingArea} m²` : '-'), value: (p) => p.buildingArea ?? null, better: 'max' },
-  { label: 'Verifikasi', format: (p) => VERIFICATION_LABELS[p.verification] || 'Belum terverifikasi' },
+  { label: 'Verifikasi', format: (p) => p.advertiser.connected ? VERIFICATION_LABELS[p.verification] || 'Belum terverifikasi' : 'Pengiklan belum terhubung' },
 ];
 
 export default function CompareScreen() {

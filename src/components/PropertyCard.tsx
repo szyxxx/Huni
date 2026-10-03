@@ -66,15 +66,16 @@ export function PropertyCard({ property, onPress, layout = 'rail', showCompareTo
     >
       <View style={[styles.mediaWrap, layout === 'grid' && styles.gridMediaWrap, layout === 'feature' && styles.featureMediaWrap]}>
         <Image source={{ uri: property.images[0] }} style={styles.media} contentFit="cover" transition={200} />
-        {property.promotion !== 'normal' ? (
+        {property.promotion !== 'normal' || !property.advertiser.connected ? (
           <View style={[styles.promoTag, { backgroundColor: theme.colors.inkPrimary }]}>
             <Text style={[theme.type.micro, { color: theme.colors.surface }]}>
-              {property.promotion === 'sponsored' ? t('sponsoredBadge') : property.promotion.toUpperCase()}
+              {!property.advertiser.connected ? 'DATA CONTOH' : property.promotion === 'sponsored' ? t('sponsoredBadge') : property.promotion.toUpperCase()}
             </Text>
           </View>
         ) : null}
         <Pressable
-          onPress={() => {
+          onPress={(event) => {
+            event.stopPropagation();
             if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             toggleSaved(property.id);
           }}

@@ -4,6 +4,7 @@ module.exports = {
     slug: 'huni',
     scheme: 'huni',
     version: '1.0.0',
+    backgroundColor: '#F5F3F0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
@@ -14,6 +15,7 @@ module.exports = {
       'expo-router',
       'expo-location',
       'expo-secure-store',
+      ['expo-navigation-bar', { enforceContrast: false, style: 'dark' }],
       [
         'expo-notifications',
         {

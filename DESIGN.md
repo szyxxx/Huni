@@ -375,7 +375,7 @@ Temukan tempat untuk hidup lebih baik.
 
 [ 🔍  Kota, area, proyek, atau ceritakan kebutuhanmu ]
 
-[ Beli ]  [ Sewa ]  [ Proyek Baru ]
+[ Beli ]  [ Sewa ]  [ Hunian Baru ]
 
 Recently explored
 [large image card] [large image card] →
@@ -542,7 +542,7 @@ Inspired by reference 01:
 Filter                                         [×]
 
 Transaksi
-[Beli] [Sewa] [Proyek Baru]
+[Beli] [Sewa] [Hunian Baru]
 
 Harga
        ▂▃▅▇█▇▅▃▂    ← optional histogram
@@ -898,13 +898,12 @@ React Native 0.86
 Expo Router
 React Native Reanimated
 React Native Gesture Handler
-FlashList
 expo-image
 expo-blur
-expo-linear-gradient (sparingly)
+expo-glass-effect (iOS 26+)
 expo-haptics
 react-native-safe-area-context
-react-native-maps
+MapLibre React Native + OpenFreeMap
 ```
 
 ### macOS 27-inspired material treatment
@@ -913,7 +912,8 @@ Translate the reference direction into mobile-native primitives:
 
 - opaque content surfaces for reading;
 - translucent floating controls for navigation/search/context only;
-- `expo-blur` for small glass surfaces, with an opaque/frosted fallback when Android device capability or scrolling performance is insufficient;
+- native `expo-glass-effect` for small glass surfaces on supported iOS devices;
+- `expo-blur` on earlier iOS versions and a translucent, high-contrast surface on Android and web;
 - hairline borders and soft ambient shadows rather than large elevation stacks;
 - subtle highlight/specular edges may be simulated with low-opacity gradients, never glossy skeuomorphism;
 - content behind glass must remain visually calm enough to preserve legibility.
@@ -939,7 +939,7 @@ Rules:
 
 ### Lists and media
 
-- Use `FlashList` for large result feeds.
+- Use the current `FlatList` result feed with stable keys and bounded card content; reassess virtualization only when catalog size warrants it.
 - Use `expo-image` with explicit aspect ratios, cache policy, placeholders, and thumbnail/full-image separation.
 - Do not mount multiple full-resolution galleries inside result cards.
 - Video previews are opt-in and paused by default.
@@ -975,7 +975,7 @@ Do not add haptic feedback to every tap or scroll.
 
 ### Maps
 
-Use `react-native-maps` for the production baseline. Price pins, selected pins, clustering, and floating preview cards must remain readable and performant. Map motion should not trigger unbounded network queries.
+Use the current MapLibre vector map with bounded price pins, selected pins, and nearby OpenStreetMap points of interest. Keep overlays readable and avoid unbounded network queries during map motion.
 
 ### Platform adaptation
 

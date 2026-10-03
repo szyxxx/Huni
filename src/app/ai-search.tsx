@@ -11,7 +11,7 @@ import { getPopularAreas } from '../data/properties';
 import { parseIntentSmart } from '../lib/aiSearch';
 
 const PROMPTS = [
-  'Rumah 3 kamar dekat kampus, cicilan di bawah 8 juta',
+  'Rumah 3 kamar dekat BSD City, cicilan di bawah 12 juta',
   'Apartemen sewa 1 kamar di Jakarta Selatan',
   'Villa untuk liburan keluarga di Bali',
 ];
@@ -35,8 +35,13 @@ export default function AiSearchScreen() {
     setLoading(true);
     try {
       const parsed = await parseIntentSmart(trimmed);
+      const location = parsed.location?.replace(/[,.]+$/, '').trim();
+      const locationKnown = location && properties.some((property) =>
+        [property.area, property.city].some((value) => value.toLocaleLowerCase('id').includes(location.toLocaleLowerCase('id')))
+      );
+      const unresolvedLocation = location && !locationKnown ? location : undefined;
       addSearchHistory(trimmed);
-      if (parsed.intent) setIntent(parsed.intent);
+      setIntent(parsed.intent ?? 'buy');
       setFilters({
         ...defaultFilters,
         types: parsed.type ? [parsed.type] : [],
@@ -44,7 +49,7 @@ export default function AiSearchScreen() {
         maxInstallment: parsed.maxInstallment ?? null,
         maxPrice: parsed.maxPrice ?? null,
       });
-      router.replace({ pathname: '/(tabs)/search', params: { q: parsed.location ?? trimmed, restore: `ai:${Date.now()}` } });
+      router.replace({ pathname: '/(tabs)/search', params: { q: unresolvedLocation ? '' : location ?? trimmed, restore: `ai:${Date.now()}`, ...(unresolvedLocation ? { unresolvedLocation } : {}) } });
     } catch {
       if (Platform.OS === 'web') alert('Gagal memproses permintaan. Coba lagi.');
       else Alert.alert('Gagal memproses', 'Coba lagi, atau ketik langsung di kolom pencarian.');
@@ -64,31 +69,19 @@ export default function AiSearchScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
         <Text style={[theme.type.body, { color: theme.colors.inkSecondary }]}>
-          Ceritakan rumah idamanmu dengan kata-katamu sendiri — AI akan menerjemahkannya jadi filter pencarian.
+          Ceritakan rumah idamanmu dengan kata-katamu sendiri. Huni akan mengubahnya menjadi filter pencarian.
         </Text>
 
         <View style={[styles.inputCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder='"Rumah 3 kamar dekat ITB, cicilan 8 juta, ada taman"'
+            placeholder='"Rumah 3 kamar dekat BSD City, cicilan di bawah 12 juta"'
             placeholderTextColor={theme.colors.inkTertiary}
             multiline
             style={[theme.type.body, { color: theme.colors.inkPrimary, minHeight: 80 }]}
           />
           <View style={styles.inputRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Rekam suara (segera hadir)"
-              onPress={() => {
-                const msg = 'Input suara akan segera hadir. Untuk sekarang, ketik kebutuhanmu di kolom ini.';
-                if (Platform.OS === 'web') alert(msg);
-                else Alert.alert('Segera hadir', msg);
-              }}
-              style={[styles.iconBtn, { backgroundColor: theme.colors.surfaceSoft }]}
-            >
-              <Feather name="mic" size={16} color={theme.colors.inkSecondary} />
-            </Pressable>
             <View style={{ flex: 1 }} />
             <Pressable
               accessibilityRole="button"
@@ -151,7 +144,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12 },
   inputCard: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, marginTop: 20 },
   inputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   promptRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },

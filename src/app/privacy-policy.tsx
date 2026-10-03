@@ -14,17 +14,17 @@ const SECTIONS = [
   {
     title: 'Bagaimana kami menggunakannya',
     body:
-      'Untuk menampilkan hasil pencarian yang relevan, rekomendasi, notifikasi pencarian tersimpan, dan menghubungkan kamu dengan pengiklan saat kamu memilih untuk menghubungi mereka.',
+      'Untuk menampilkan hasil pencarian yang relevan, rekomendasi, dan fitur notifikasi yang tersedia. Saat kamu memilih untuk menghubungi pengiklan, aplikasi menampilkan jalur kontak yang tersedia untuk listing tersebut.',
   },
   {
     title: 'Berbagi data',
     body:
-      'Kami tidak menjual data pribadi. Data kontak dibagikan ke pengiklan hanya saat kamu memicu tindakan kontak (WhatsApp, telepon, atau formulir pertanyaan).',
+      'Kami tidak menjual data pribadi. Formulir minat simulasi untuk pengiklan atau developer yang belum terhubung disimpan di perangkatmu dan belum dikirim kepada mereka. Pada proyek yang sudah terhubung, layar formulir menjelaskan bahwa data yang kamu kirim dapat dilihat developer. Tautan WhatsApp membuka layanan di luar Huni.',
   },
   {
     title: 'Retensi',
     body:
-      'Data dihapus saat akun dihapus, kecuali data yang wajib disimpan untuk kepatuhan hukum, pencegahan penipuan, atau keamanan, sesuai jangka waktu yang berlaku.',
+      'Simulasi minat di perangkat dapat dihapus dari halaman detail. Penghapusan akun tersedia melalui alur Hapus Akun. Catatan audit penghapusan dapat dipertahankan untuk keamanan dan kepatuhan sesuai ketentuan yang berlaku.',
   },
   {
     title: 'Hak kamu',

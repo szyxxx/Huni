@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, ScrollView, Share, StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, Pressable, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { facilityIcon } from '../../lib/facilityIcon';
 import { logLead } from '../../lib/leads';
 import { useTranslate, useLanguage, type StringKey } from '../../lib/i18n';
+import { clearPropertyInterest, getPropertyInterest, savePropertyInterest, type PropertyInterest } from '../../lib/propertyInterest';
 
 type TourTimeSlot = { labelKey: StringKey; hour: number };
 
@@ -64,6 +65,13 @@ export default function PropertyDetailScreen() {
   const [tourPickerOpen, setTourPickerOpen] = useState(false);
   const [tourDay, setTourDay] = useState<number | null>(null);
   const [tourTime, setTourTime] = useState<TourTimeSlot | null>(null);
+  const [interestOpen, setInterestOpen] = useState(false);
+  const [interestName, setInterestName] = useState('');
+  const [interestPhone, setInterestPhone] = useState('');
+  const [interestKind, setInterestKind] = useState<PropertyInterest['kind']>('info');
+  const [interestBusy, setInterestBusy] = useState(false);
+  const [interestError, setInterestError] = useState<string | null>(null);
+  const [interestEditing, setInterestEditing] = useState(false);
   const filters = useAppStore((s) => s.filters);
   const kprScenarios = useAppStore((s) => s.kprScenarios);
   const addRecentlyViewed = useAppStore((s) => s.addRecentlyViewed);
@@ -74,6 +82,11 @@ export default function PropertyDetailScreen() {
     enabled: Boolean(id),
   });
   const { data: allProperties = [] } = useQuery({ queryKey: ['properties'], queryFn: fetchProperties });
+  const { data: interest, refetch: refetchInterest } = useQuery({
+    queryKey: ['demo-property-interest', id],
+    queryFn: () => getPropertyInterest(id),
+    enabled: Boolean(id),
+  });
   const fitReasons = property ? getFitReasons(property, { filters, kprScenarios }, t) : [];
 
   useEffect(() => {
@@ -112,6 +125,30 @@ export default function PropertyDetailScreen() {
     void logLead({ propertyId: property.id, userId: user?.id ?? null, sourceSurface: 'property_detail', channel: 'whatsapp' });
     const text = encodeURIComponent(`Halo, saya tertarik dengan "${property.title}" di Huni.`);
     Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {});
+  };
+  const openInterest = (kind: PropertyInterest['kind'] = 'info') => {
+    setInterestName(interest?.contactName ?? '');
+    setInterestPhone(interest?.contactPhone ?? '');
+    setInterestKind(kind);
+    setInterestError(null);
+    setInterestEditing(false);
+    setInterestOpen(true);
+  };
+  const submitInterest = async () => {
+    if (interestBusy) return;
+    setInterestBusy(true);
+    setInterestError(null);
+    try {
+      await savePropertyInterest({ propertyId: property.id, contactName: interestName, contactPhone: interestPhone, kind: interestKind });
+      if (!isSaved) toggleSaved(property.id);
+      await refetchInterest();
+      setInterestOpen(false);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      setInterestError(error instanceof Error ? error.message : 'Minat belum tersimpan. Coba lagi.');
+    } finally {
+      setInterestBusy(false);
+    }
   };
   const submitTourRequest = () => {
     const phone = property.advertiser.contactPhone;
@@ -238,7 +275,11 @@ export default function PropertyDetailScreen() {
 
         <View style={[styles.content, { backgroundColor: theme.colors.canvas }]}>
           <View style={styles.detailHandle} />
-          <VerificationBadge tier={property.verification} />
+          {property.advertiser.connected ? <VerificationBadge tier={property.verification} /> : (
+            <View style={[styles.dropBadge, { alignSelf: 'flex-start', backgroundColor: theme.colors.brandSoft }]}>
+              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>DATA CONTOH · PENGIKLAN BELUM TERHUBUNG</Text>
+            </View>
+          )}
           <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 14 }]}>{property.title}</Text>
           <View style={styles.locationLine}><Feather name="map-pin" size={15} color={theme.colors.inkTertiary} /><Text style={[theme.type.caption, { color: theme.colors.inkSecondary }]}>{property.area}, {property.city}</Text></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
@@ -253,6 +294,19 @@ export default function PropertyDetailScreen() {
               </View>
             ) : null}
           </View>
+
+          {!property.advertiser.contactPhone && interest ? (
+            <View style={[styles.interestStatus, { backgroundColor: theme.colors.brandSoft }]}>
+              <Feather name="check-circle" size={18} color={theme.colors.brandInk} />
+              <View style={{ flex: 1 }}>
+                <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary }]}>Minat tersimpan di perangkat</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>Ini simulasi. Pengiklan belum menerima permintaanmu. Properti ada di Tersimpan.</Text>
+                <Pressable onPress={() => { void clearPropertyInterest(property.id).then(() => refetchInterest()); }} style={{ marginTop: 7 }} accessibilityRole="button">
+                  <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Hapus simulasi</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.actionRow}>
             <Pressable
@@ -274,13 +328,13 @@ export default function PropertyDetailScreen() {
               <Feather name="bookmark" size={15} color={theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: theme.colors.inkSecondary }]}>{t('shortlist')}</Text>
             </Pressable>
-            {property.advertiser.contactPhone ? <Pressable
-              onPress={() => setTourPickerOpen((v) => !v)}
+            <Pressable
+              onPress={property.advertiser.contactPhone ? () => setTourPickerOpen((v) => !v) : () => openInterest('visit')}
               style={[styles.pillBtn, { borderColor: tourPickerOpen ? theme.colors.brand : theme.colors.border, backgroundColor: tourPickerOpen ? theme.colors.brandSoft : theme.colors.surface }]}
             >
               <Feather name="calendar" size={15} color={tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary} />
               <Text style={[theme.type.captionStrong, { color: tourPickerOpen ? theme.colors.brandInk : theme.colors.inkSecondary }]}>{t('scheduleTour')}</Text>
-            </Pressable> : null}
+            </Pressable>
             {property.videoUrl ? (
               <Pressable
                 onPress={watchVideo}
@@ -516,17 +570,48 @@ export default function PropertyDetailScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={property.advertiser.contactPhone ? contactWhatsApp : () => {
-            if (!isSaved) toggleSaved(property.id);
-            router.push('/(tabs)/saved');
-          }}
+          onPress={property.advertiser.contactPhone ? contactWhatsApp : () => openInterest()}
           style={[styles.contactBtn, { backgroundColor: theme.colors.inkPrimary }]}
         >
           <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>
-            {property.advertiser.contactPhone ? t('contactViaWhatsApp') : isSaved ? t('viewSaved') : t('saveForLater')}
+            {property.advertiser.contactPhone ? t('contactViaWhatsApp') : interest ? 'Lihat minat' : 'Saya tertarik'}
           </Text>
         </Pressable>
       </GlassSurface>
+
+      <Modal visible={interestOpen} transparent animationType="slide" onRequestClose={() => setInterestOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.interestBackdrop, Platform.OS === 'android' && interestEditing && { justifyContent: 'flex-start', paddingTop: insets.top + 8 }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setInterestOpen(false)} accessibilityLabel="Tutup formulir minat" />
+          <ScrollView style={[styles.interestSheet, { backgroundColor: theme.colors.surface, maxHeight: Platform.OS === 'android' && interestEditing ? '55%' : '85%' }]} contentContainerStyle={{ paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
+            <View style={styles.interestHeading}>
+              <View style={{ flex: 1 }}>
+                <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>Tanyakan properti ini</Text>
+                <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]} numberOfLines={2}>{property.title}</Text>
+              </View>
+              <Pressable onPress={() => setInterestOpen(false)} accessibilityRole="button" accessibilityLabel="Tutup" hitSlop={10}>
+                <Feather name="x" size={22} color={theme.colors.inkPrimary} />
+              </Pressable>
+            </View>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 20 }]}>Apa yang ingin kamu ketahui?</Text>
+            <View style={styles.interestOptions}>
+              {([['info', 'Harga & ketersediaan'], ['visit', 'Jadwalkan kunjungan']] as const).map(([kind, label]) => (
+                <Pressable key={kind} onPress={() => setInterestKind(kind)} accessibilityRole="radio" accessibilityState={{ selected: interestKind === kind }} style={[styles.interestOption, { backgroundColor: interestKind === kind ? theme.colors.inkPrimary : theme.colors.surfaceSoft }]}>
+                  <Text style={[theme.type.captionStrong, { color: interestKind === kind ? theme.colors.surface : theme.colors.inkPrimary }]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 18 }]}>Nama</Text>
+            <TextInput value={interestName} onChangeText={setInterestName} onFocus={() => setInterestEditing(true)} autoComplete="name" placeholder="Nama lengkap" placeholderTextColor={theme.colors.inkTertiary} style={[styles.interestInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 14 }]}>Nomor WhatsApp</Text>
+            <TextInput value={interestPhone} onChangeText={setInterestPhone} onFocus={() => setInterestEditing(true)} keyboardType="phone-pad" autoComplete="tel" placeholder="08… atau +62…" placeholderTextColor={theme.colors.inkTertiary} style={[styles.interestInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 12 }]}>Ini simulasi. Nama dan nomor hanya disimpan di perangkat ini; pengiklan belum menerima permintaan.</Text>
+            {interestError ? <Text style={[theme.type.caption, { color: theme.colors.brandInk, marginTop: 10 }]}>{interestError}</Text> : null}
+            <Pressable onPress={() => { void submitInterest(); }} disabled={interestBusy} accessibilityRole="button" style={[styles.interestSubmit, { backgroundColor: theme.colors.inkPrimary, opacity: interestBusy ? 0.65 : 1 }]}>
+              {interestBusy ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>Simpan simulasi minat</Text>}
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -549,6 +634,14 @@ function Spec({ label, value, icon }: { label: string; value: string; icon: Reac
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   dropBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  interestStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 16, padding: 14, marginTop: 14 },
+  interestBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.36)' },
+  interestSheet: { flexGrow: 0, maxHeight: '85%', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 24 },
+  interestHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  interestOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  interestOption: { minHeight: 42, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  interestInput: { height: 52, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, marginTop: 8 },
+  interestSubmit: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   pillBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
   shortlistPicker: { marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 4 },

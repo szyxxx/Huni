@@ -6,6 +6,9 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-release-check/
+release-artifacts/
+supabase/.temp/
 web-build/
 expo-env.d.ts
 

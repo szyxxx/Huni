@@ -46,7 +46,7 @@ type PropertyRow = {
   lat: number | null;
   lng: number | null;
   last_confirmed_at: string;
-  advertisers: { name: string; is_agency: boolean; verification: Property['verification']; contact_phone: string | null } | null;
+  advertisers: { name: string; is_agency: boolean; verification: Property['verification']; contact_phone: string | null; owner_id: string | null } | null;
   property_nearby_places: { label: string; minutes: number }[] | null;
 };
 
@@ -73,7 +73,7 @@ function mapPropertyRow(row: PropertyRow): Property {
     images: row.images,
     verification: row.advertisers?.verification ?? 'unverified',
     promotion: row.promotion,
-    advertiser: { name: row.advertisers?.name ?? 'Tidak diketahui', isAgency: row.advertisers?.is_agency ?? false, contactPhone: row.advertisers?.contact_phone ?? undefined },
+    advertiser: { name: row.advertisers?.name ?? 'Tidak diketahui', isAgency: row.advertisers?.is_agency ?? false, contactPhone: row.advertisers?.contact_phone ?? undefined, connected: Boolean(row.advertisers?.owner_id || row.advertisers?.contact_phone) },
     ...mapCoordinates(row.id, row.lat, row.lng),
     facilities: row.facilities,
     description: row.description,
@@ -87,7 +87,7 @@ const PROPERTY_SELECT = `
   area, city, bedrooms, bathrooms, land_area, building_area, images, furnished, video_url,
   virtual_tour_url, virtual_tour_kind, promotion,
   facilities, description, lat, lng, last_confirmed_at,
-  advertisers ( name, is_agency, verification, contact_phone ),
+  advertisers ( name, is_agency, verification, contact_phone, owner_id ),
   property_nearby_places ( label, minutes )
 `;
 

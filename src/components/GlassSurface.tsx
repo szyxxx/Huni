@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, View, ViewProps } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppStore } from '../store/useAppStore';
 
@@ -40,7 +41,7 @@ export function GlassSurface({ style, intensity = 40, children, ...rest }: Props
         style={[
           styles.base,
           {
-            backgroundColor: Platform.OS === 'android' ? theme.colors.surface : theme.colors.surfaceGlass,
+            backgroundColor: reduceTransparency ? theme.colors.surface : theme.colors.surfaceGlass,
             borderColor: theme.colors.borderStrong,
           },
           style,
@@ -51,11 +52,23 @@ export function GlassSurface({ style, intensity = 40, children, ...rest }: Props
       </View>
     );
   }
+  if (Platform.OS === 'ios' && isGlassEffectAPIAvailable() && isLiquidGlassAvailable()) {
+    return (
+      <GlassView
+        glassEffectStyle={glassIntensity === 'low' ? 'clear' : 'regular'}
+        colorScheme={theme.scheme}
+        style={[styles.base, { borderColor: theme.colors.border }, style]}
+        {...rest}
+      >
+        {children}
+      </GlassView>
+    );
+  }
   return (
     <BlurView
       intensity={scaledIntensity}
       tint={theme.scheme === 'dark' ? 'dark' : 'light'}
-      style={[styles.base, { borderColor: theme.colors.border }, style]}
+      style={[styles.base, { borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceGlass }, style]}
       {...rest}
     >
       {children}

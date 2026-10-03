@@ -130,7 +130,7 @@ export default function HomeScreen() {
             <Pressable onPress={() => router.push(`/project/${featuredProject.id}`)} style={[styles.featureProject, { backgroundColor: theme.colors.surface }]}>
               <Image source={{ uri: featuredProject.images[0] }} style={styles.featureProjectImage} contentFit="cover" />
               <View style={styles.featureProjectBody}>
-                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{t(featuredProject.progressPercent >= 100 ? 'projectReadyBadge' : 'projectBuildingBadge')}</Text>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{featuredProject.developerConnected ? t(featuredProject.progressPercent >= 100 ? 'projectReadyBadge' : 'projectBuildingBadge') : `DATA CONTOH · ${t(featuredProject.progressPercent >= 100 ? 'projectReadyBadge' : 'projectBuildingBadge')}`}</Text>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 6 }]}>{featuredProject.name}</Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{featuredProject.area}, {featuredProject.city} · {featuredProject.developer}</Text>
                 <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 7 }]}>{featuredProject.units.reduce((sum, unit) => sum + unit.available, 0)} {t('unitsAvailable')} · {featuredProject.units.length} {t('unitTypeCount')}</Text>

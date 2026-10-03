@@ -40,7 +40,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const columns = width >= 700 ? 2 : 1;
-  const params = useLocalSearchParams<{ q?: string; restore?: string; compose?: string }>();
+  const params = useLocalSearchParams<{ q?: string; restore?: string; compose?: string; unresolvedLocation?: string }>();
   const intent = useAppStore((s) => s.intent);
   const setIntent = useAppStore((s) => s.setIntent);
   const filters = useAppStore((s) => s.filters);
@@ -142,7 +142,7 @@ export default function SearchScreen() {
     if (filters.bathrooms) list = list.filter((p) => (p.bathrooms ?? 0) >= filters.bathrooms!);
     if (filters.maxInstallment)
       list = list.filter((p) => (p.estimatedInstallment ?? Infinity) <= filters.maxInstallment!);
-    if (filters.verifiedOnly) list = list.filter((p) => p.verification !== 'unverified');
+    if (filters.verifiedOnly) list = list.filter((p) => p.advertiser.connected && p.verification !== 'unverified');
     if (filters.furnished) list = list.filter((p) => p.furnished === true);
     if (filters.minArea) list = list.filter((p) => (p.landArea ?? p.buildingArea ?? 0) >= filters.minArea!);
     if (filters.specialOfferOnly) list = list.filter((p) => p.promotion !== 'normal');
@@ -239,6 +239,20 @@ export default function SearchScreen() {
         ))}
       </View>
 
+      {params.unresolvedLocation && !query.trim() ? (
+        <View style={[styles.locationNotice, { backgroundColor: theme.colors.brandSoft }]}>
+          <Feather name="info" size={16} color={theme.colors.brandInk} />
+          <View style={{ flex: 1 }}>
+            <Text style={[theme.type.caption, { color: theme.colors.brandInk }]}>
+              Area sekitar “{params.unresolvedLocation}” belum dapat dipastikan. {activeFilterCount} filter lain tetap aktif.
+            </Text>
+            <Pressable onPress={() => router.push('/filters')} accessibilityRole="button" style={{ alignSelf: 'flex-start', paddingVertical: 6 }}>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.brandInk }]}>Lihat dan ubah filter</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
       {searchFocused && query.trim() && suggestions.length > 0 ? (
         <View style={[styles.historyBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           {suggestions.map((s) => (
@@ -286,7 +300,7 @@ export default function SearchScreen() {
         <Feather name="edit-3" size={17} color={theme.colors.brandInk} />
         <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{t('describePlaceTitle')}</Text>
         <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 4 }]}>{t('describePlaceHint')}</Text>
-        <Pressable onPress={() => { setQuery('rumah 3 kamar dekat ITB cicilan 8 juta'); inputRef.current?.focus(); }} style={[styles.promptExample, { backgroundColor: theme.colors.surfaceSoft }]}>
+        <Pressable onPress={() => { setQuery('rumah 3 kamar dekat BSD City cicilan 12 juta'); inputRef.current?.focus(); }} style={[styles.promptExample, { backgroundColor: theme.colors.surfaceSoft }]}>
           <Text style={[theme.type.caption, { color: theme.colors.inkPrimary, flex: 1 }]}>{t('describePlaceExample')}</Text>
           <Feather name="arrow-up-right" size={16} color={theme.colors.inkPrimary} />
         </Pressable>
@@ -342,7 +356,7 @@ export default function SearchScreen() {
             >
               <Image source={{ uri: item.images[0] }} style={styles.projectImage} contentFit="cover" />
               <View style={styles.projectBody}>
-                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{item.progressPercent >= 100 ? t('projectReadyBadge') : `${t('projectBuildingBadge')} · ${item.progressPercent}% ${t('percentComplete')}`}</Text>
+                <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>{!item.developerConnected ? 'DATA CONTOH · ' : ''}{item.progressPercent >= 100 ? t('projectReadyBadge') : `${t('projectBuildingBadge')} · ${item.progressPercent}% ${t('percentComplete')}`}</Text>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary, marginTop: 5 }]}>{item.name}</Text>
                 <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 3 }]}>{item.area}, {item.city}</Text>
                 <Text style={[theme.type.bodyStrong, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{item.units.length ? `${t('startingFrom')} ${formatIDR(Math.min(...item.units.map((unit) => unit.priceFrom)))}` : t('unitPriceUnavailable')}</Text>
@@ -429,6 +443,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
+  locationNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginHorizontal: 20, marginTop: 12, padding: 12, borderRadius: 14 },
   searchIntro: { paddingHorizontal: 24, marginBottom: 16 },
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 24 },
   intentRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginTop: 14 },

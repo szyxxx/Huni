@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizeContactPhone, parseProjectInquiry, type ProjectInquiry } from './projectInquiryFormat';
+import { deleteDemoInterest, readDemoInterest, writeDemoInterest } from './demoInterestStorage';
 
 export type { InquiryKind, ProjectInquiry } from './projectInquiryFormat';
 
@@ -15,18 +15,22 @@ function validatedDetails(details: InquiryDetails): InquiryDetails {
 }
 
 function demoKey(projectId: string) {
+  return `huni.demo-project-inquiry.${projectId}`;
+}
+
+function legacyDemoKey(projectId: string) {
   return `huni:demo-project-inquiry:${projectId}`;
 }
 
 export async function saveDemoProjectInquiry(details: InquiryDetails): Promise<ProjectInquiry> {
   const normalized = validatedDetails(details);
   const saved = { ...normalized, id: `demo-${Date.now()}`, createdAt: new Date().toISOString() };
-  await AsyncStorage.setItem(demoKey(details.projectId), JSON.stringify(saved));
+  await writeDemoInterest(demoKey(details.projectId), JSON.stringify(saved));
   return saved;
 }
 
 export async function getDemoProjectInquiry(projectId: string): Promise<ProjectInquiry | null> {
-  const saved = await AsyncStorage.getItem(demoKey(projectId));
+  const saved = await readDemoInterest(demoKey(projectId), legacyDemoKey(projectId));
   if (!saved) return null;
   try {
     return JSON.parse(saved) as ProjectInquiry;
@@ -36,7 +40,7 @@ export async function getDemoProjectInquiry(projectId: string): Promise<ProjectI
 }
 
 export async function clearDemoProjectInquiry(projectId: string): Promise<void> {
-  await AsyncStorage.removeItem(demoKey(projectId));
+  await deleteDemoInterest(demoKey(projectId), legacyDemoKey(projectId));
 }
 
 export async function createProjectInquiry(details: InquiryDetails, userId: string): Promise<ProjectInquiry> {

@@ -40,6 +40,7 @@ export default function ProjectDetailScreen() {
   const queryClient = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [inquiryEditing, setInquiryEditing] = useState(false);
   const [inquiryKind, setInquiryKind] = useState<InquiryKind>('availability');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -107,6 +108,7 @@ export default function ProjectDetailScreen() {
       setInquiryKind(myInquiry.kind);
     }
     setInquiryError(null);
+    setInquiryEditing(false);
     setInquiryOpen(true);
   };
 
@@ -158,9 +160,13 @@ export default function ProjectDetailScreen() {
         </View>
 
         <View style={styles.content}>
-          {project.developerVerified ? (
+          {project.developerVerified && project.developerConnected ? (
             <View style={[styles.badge, { backgroundColor: theme.colors.brandSoft }]}>
               <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>DEVELOPER RESMI</Text>
+            </View>
+          ) : !project.developerConnected ? (
+            <View style={[styles.badge, { backgroundColor: theme.colors.brandSoft }]}>
+              <Text style={[theme.type.micro, { color: theme.colors.brandInk }]}>DATA CONTOH · DEVELOPER BELUM TERHUBUNG</Text>
             </View>
           ) : null}
           <Text style={[theme.type.title, { color: theme.colors.inkPrimary, marginTop: 10 }]}>{project.name}</Text>
@@ -177,7 +183,7 @@ export default function ProjectDetailScreen() {
 
           {project.promo ? (
             <View style={[styles.promoBanner, { backgroundColor: theme.colors.inkPrimary }]}>
-              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{project.promo}</Text>
+              <Text style={[theme.type.captionStrong, { color: theme.colors.surface }]}>{project.developerConnected ? project.promo : `Contoh promo · ${project.promo}`}</Text>
             </View>
           ) : null}
 
@@ -286,9 +292,9 @@ export default function ProjectDetailScreen() {
       </GlassSurface>
 
       <Modal visible={inquiryOpen} transparent animationType="slide" onRequestClose={() => setInquiryOpen(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.modalBackdrop, Platform.OS === 'android' && inquiryEditing && { justifyContent: 'flex-start', paddingTop: insets.top + 8 }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setInquiryOpen(false)} accessibilityLabel="Tutup formulir minat" />
-          <ScrollView style={[styles.inquirySheet, { backgroundColor: theme.colors.surface }]} contentContainerStyle={{ paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
+          <ScrollView style={[styles.inquirySheet, { backgroundColor: theme.colors.surface, maxHeight: Platform.OS === 'android' && inquiryEditing ? '55%' : '85%' }]} contentContainerStyle={{ paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
             <View style={styles.sheetHeading}>
               <View style={{ flex: 1 }}>
                 <Text style={[theme.type.headline, { color: theme.colors.inkPrimary }]}>Tanyakan hunian ini</Text>
@@ -307,9 +313,9 @@ export default function ProjectDetailScreen() {
               ))}
             </View>
             <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 18 }]}>Nama</Text>
-            <TextInput value={contactName} onChangeText={setContactName} autoComplete="name" placeholder="Nama lengkap" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <TextInput value={contactName} onChangeText={setContactName} onFocus={() => setInquiryEditing(true)} autoComplete="name" placeholder="Nama lengkap" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
             <Text style={[theme.type.captionStrong, { color: theme.colors.inkPrimary, marginTop: 14 }]}>Nomor WhatsApp</Text>
-            <TextInput value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="08… atau +62…" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
+            <TextInput value={contactPhone} onChangeText={setContactPhone} onFocus={() => setInquiryEditing(true)} keyboardType="phone-pad" autoComplete="tel" placeholder="08… atau +62…" placeholderTextColor={theme.colors.inkTertiary} style={[styles.inquiryInput, theme.type.body, { color: theme.colors.inkPrimary, borderColor: theme.colors.border }]} />
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 12 }]}>
               {project.developerConnected ? 'Dengan mengirim, nama dan nomor ini dapat dilihat developer proyek di Huni.' : 'Ini simulasi. Nama dan nomor disimpan hanya di perangkat ini; developer belum menerima permintaan.'}
             </Text>

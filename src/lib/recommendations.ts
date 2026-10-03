@@ -43,7 +43,7 @@ export function getFitReasons(
     reasons.push({ text: `${closeNearby.minutes} ${t('minutesUnit')} ${t('fromPrefix')} ${closeNearby.label.toLowerCase()}`, kind: 'commute' });
   }
 
-  if (property.verification === 'official_developer' || property.verification === 'verified_agency') {
+  if (property.advertiser.connected && (property.verification === 'official_developer' || property.verification === 'verified_agency')) {
     reasons.push({ text: t('fitVerifiedAdvertiser'), kind: 'trust' });
   }
 

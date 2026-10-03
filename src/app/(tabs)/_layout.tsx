@@ -26,21 +26,22 @@ function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBar
   const theme = useTheme();
   const t = useTranslate();
   const { width } = useWindowDimensions();
-  const dockWidth = Math.min(width - 32, 420);
+  const dockWidth = Math.min(width - 40, 408);
 
   return (
-    <View pointerEvents="box-none" style={[styles.position, { bottom: insets.bottom + 8 }]}>
+    <View pointerEvents="box-none" style={[styles.position, { bottom: insets.bottom + 10 }]}>
       <GlassSurface
         intensity={72}
         style={[
           styles.dock,
           {
             width: dockWidth,
-            borderColor: theme.scheme === 'dark' ? theme.colors.borderStrong : 'rgba(255,255,255,0.85)',
+            borderColor: theme.scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.94)',
             ...theme.shadow.soft,
           },
         ]}
       >
+        <View pointerEvents="none" style={[styles.edgeLight, { backgroundColor: theme.scheme === 'dark' ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.90)' }]} />
         {state.routes.map((route, index) => {
           const active = state.index === index;
           const options = descriptors[route.key].options;
@@ -61,12 +62,12 @@ function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBar
               accessibilityState={{ selected: active }}
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
               testID={options.tabBarButtonTestID}
-              style={styles.tab}
+              style={[styles.tab, active && { backgroundColor: theme.scheme === 'dark' ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.58)' }]}
             >
-              <View style={[styles.iconWell, active && { backgroundColor: theme.colors.inkPrimary, borderRadius: 999 }]}>
-                <Feather name={icon} size={20} color={active ? theme.colors.surface : theme.colors.inkSecondary} />
+              <View style={[styles.iconWell, active && { backgroundColor: theme.colors.brandSoft, borderColor: theme.colors.brand + '66', borderWidth: StyleSheet.hairlineWidth }]}>
+                <Feather name={icon} size={20} color={active ? theme.colors.brandInk : theme.colors.inkSecondary} />
               </View>
-              <Text numberOfLines={1} style={[styles.tabLabel, { color: active ? theme.colors.inkPrimary : theme.colors.inkTertiary, fontWeight: active ? '600' : '400' }]}>{label}</Text>
+              <Text numberOfLines={1} style={[styles.tabLabel, { color: active ? theme.colors.inkPrimary : theme.colors.inkSecondary, fontWeight: active ? '600' : '500' }]}>{label}</Text>
             </Pressable>
           );
         })}
@@ -95,8 +96,9 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   position: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  dock: { height: 74, borderRadius: 28, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5 },
-  tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  dock: { height: 76, borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 7, paddingVertical: 7 },
+  edgeLight: { position: 'absolute', top: 1, left: 22, right: 22, height: 1, borderRadius: 1 },
+  tab: { flex: 1, minHeight: 62, borderRadius: 24, alignItems: 'center', justifyContent: 'center', gap: 2 },
   iconWell: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 11, lineHeight: 14, letterSpacing: -0.1 },
 });

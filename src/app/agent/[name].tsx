@@ -27,10 +27,11 @@ export default function AgentProfileScreen() {
 
   const listings = properties.filter((p) => p.advertiser.name === agentName);
   const isAgency = listings.some((p) => p.advertiser.isAgency);
+  const hasConnectedListing = listings.some((p) => p.advertiser.connected);
   const contactPhone = listings.find((p) => p.advertiser.contactPhone)?.advertiser.contactPhone;
   const bestVerification = listings.reduce<string | null>((best, p) => {
     const rank = ['unverified', 'verified_owner', 'verified_agent', 'verified_agency', 'official_developer'];
-    if (!best || rank.indexOf(p.verification) > rank.indexOf(best)) return p.verification;
+    if (p.advertiser.connected && (!best || rank.indexOf(p.verification) > rank.indexOf(best))) return p.verification;
     return best;
   }, null);
 
@@ -65,7 +66,7 @@ export default function AgentProfileScreen() {
             </View>
             <Text style={[theme.type.caption, { color: theme.colors.inkSecondary, marginTop: 10 }]}>
               {isAgency ? 'Agensi properti' : 'Pemilik langsung'}
-              {bestVerification && bestVerification !== 'unverified' ? ` · ${VERIFICATION_LABELS[bestVerification as keyof typeof VERIFICATION_LABELS]}` : ''}
+              {bestVerification && bestVerification !== 'unverified' ? ` · ${VERIFICATION_LABELS[bestVerification as keyof typeof VERIFICATION_LABELS]}` : hasConnectedListing ? '' : ' · profil contoh; pengiklan belum terhubung'}
             </Text>
             <Text style={[theme.type.caption, { color: theme.colors.inkTertiary, marginTop: 2 }]}>
               {isLoading ? 'Memuat…' : `${listings.length} properti aktif di Huni`}
