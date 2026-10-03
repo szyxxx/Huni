@@ -43,7 +43,9 @@ test('database policies and price event processing enforce trust boundaries', ()
       create role service_role;
     `);
 
-    for (const file of readdirSync(resolve(root, 'supabase/migrations')).filter((name) => name.endsWith('.sql')).sort()) {
+    // The scheduling migration needs Supabase-managed pg_cron, pg_net, and Vault.
+    for (const file of readdirSync(resolve(root, 'supabase/migrations'))
+      .filter((name) => name.endsWith('.sql') && !name.endsWith('_schedule_huni_workers.sql')).sort()) {
       sql(readFileSync(resolve(root, 'supabase/migrations', file), 'utf8'));
     }
 
